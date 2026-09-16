@@ -1,0 +1,29 @@
+# =====================================================================
+# 归一化统计量（norm stats）计算配置
+# 该文件被 scripts/compute_norm_stats.py 读取，用于在训练前遍历 VLA 数据集，
+# 统计所有状态（state）/动作（action）特征的均值、方差、分位数等，
+# 最终生成一份 JSON 归一化文件，供后续训练（train_lingbotvla.py）和
+# 推理部署（deploy/lingbot_vla_v2_policy.py）加载使用。
+# =====================================================================
+
+# VLA（视觉-语言-动作）模型训练时，机器人的状态（如关节角度）和动作数据量纲差异很大，必须先做归一化才能稳定训练。流程是：
+  # 归一化统计（本文件）：遍历一遍数据集，统计每个特征的均值、方差、分位数等 → 输出一个 JSON 文件
+  # 训练（train_lingbotvla.py）：加载这个 JSON，对数据做归一化后训练
+  # 推理（deploy/lingbot_vla_v2_policy.py）：加载同一个 JSON，把模型输出反归一化回真实动作
+# 关键要求：计算归一化、训练、推理三处用的归一化文件必须完全一致（Training_Config.md 中 norm_stats_file 字段也强调了这点）。
+
+data:                              # 数据相关参数（对应 NormComputeDataArguments）
+  datasets_type: vla               # 数据集类型，归一化计算固定使用 'vla'
+  data_name: multi                 # 数据集名称；'multi' 表示多数据集，此时 train_path 指向一个任务清单 .txt（多数据集间用逗号分隔）
+  robot_name:                      # 机器人名称，用于筛选清单中的数据集，多个用逗号分隔；留空表示不筛选（使用全部）
+  train_path:                      # ★待填写：任务清单 .txt 文件路径（每行格式 "数据集名 任务路径"），支持多个用逗号分隔
+  robot_config_root: configs/robot_configs  # 机器人配置文件所在目录，脚本会在此目录下查找 {data_name}.yaml
+  norm_path:                       # ★待填写：归一化统计量 JSON 的输出保存路径（例如 assets/norm_stats/xxx.json）
+  num_workers: 8                   # 多进程读取数据时的 worker 数量（mp.Pool 进程数）
+  prompt_type: global              # 提示词类型：global(全局任务) / subtask(子任务) / both(两者都用)，需与训练配置保持一致
+
+
+train:                             # 训练相关参数（对应 MyTrainingArguments，归一化计算只用到其中几个）
+  micro_batch_size: 48             # 每个进程计算归一化时的批大小（一次送入多少条样本统计）
+  output_dir: ''                   # 输出目录（归一化计算一般不使用，保留字段）
+  max_steps: 100000000000000       # 占位用的大数值，避免参数校验报错；归一化计算按完整数据集遍历，不依赖此值

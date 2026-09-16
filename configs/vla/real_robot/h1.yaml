@@ -1,0 +1,254 @@
+# =====================================================================
+# H1 仿真数据(h1_build_pick_v2)后训练配置 —— 全参数逐条注释版
+# ---------------------------------------------------------------------
+# 数据画像(全 78108 帧逐维实测):
+#   101 episodes / 78108 帧 / fps30 / 单任务 / episode 均长 25.8s(13~41s)
+#   双臂 7+7 关节连续平滑(mean|action-state|=0.0098) | 头部在追踪(±0.86rad)
+#   夹爪 0~1 连续开合(非二值,857 个取值) | 腰部全程静止(std≈2e-4,不映射)
+# 模板来源:real_robot.yaml(声明了 head 槽位;waist 虽声明但数据静止不映射)
+# 首次训练:关深度/视频蒸馏(不写 align_params 段);开蒸馏见文件底部注释
+# 硬件适配:单卡 RTX 5090 32GB → micro_batch 1 + 梯度检查点 + 不开 compile
+#
+# 本文件三段结构:model(用什么模型) / data(喂什么数据) / train(怎么训)
+# ★重要机制:train_lingbotvla.py:399 会把 model 段+train 段的**全部字段合并**
+#   成模型图纸(LingbotVLAV2Config)的构造参数 —— 所以 train 段里的
+#   use_moe、train_expert_only 等字段其实直接控制模型结构/冻结行为
+# =====================================================================
+
+# =====================================================================
+# 一、model 段 —— 用什么模型、怎么加载预训练权重
+# =====================================================================
+model:
+  # 预训练 6B 主权重路径(6B = Qwen3-VL-4B 骨干 + ~1.7B 动作专家)
+  # post_training 从这里加载起点权重;safetensors 分片,加载是严格模式
+  model_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/lingbot-vla-v2-6b
+
+  # tokenizer/处理器路径 —— 文本指令分词 + 图像预处理配置都来自这里
+  # (跟主权重分开存,因为用的是 Qwen3-VL 原生 tokenizer)
+  tokenizer_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/Qwen3-VL-4B-Instruct
+
+  # true=后训练(微调)模式。两重含义:
+  #   ① 权重加载严格化:checkpoint 里多余/缺失的键直接报错(防错配模型)
+  #   ② 跳过预训练专属逻辑(如 VLM-only 加载)
+  #   我们遇到的蒸馏头 KeyError 就是这个严格模式的检查(见 module_utils.py 白名单)
+  post_training: true
+
+  # 自适应 LayerNorm 时间条件:把 flow-matching 的去噪时间步 t 通过
+  # gate/beta 注入每层 LayerNorm —— 动作专家"知道现在去噪到第几步"靠它
+  adanorm_time: true
+
+  # 用哪个 config 类实例化模型图纸(决定模型结构和接受的构造参数)
+  config_key: LingbotVLAV2Config
+
+  # MoE 层的实现方式:fused=融合算子(一次 kernel 完成路由+专家计算,
+  # 快且省显存)。另一种通常是 torch 原生逐专家循环实现(慢,仅调试用)
+  moe_implementation: fused
+
+# =====================================================================
+# 二、data 段 —— 喂什么数据、怎么变成模型输入
+# =====================================================================
+data:
+  # 数据集加载器类型:vla=视觉-语言-动作三模态样本(图像+文本+状态/动作序列)
+  datasets_type: vla
+
+  # 数据集名。单数据集模式下 = robot_config 文件名(configs/robot_configs/h1.yaml),
+  # 加载器靠它找"字段翻译字典"(H1 原始 20 维怎么拼进 55 维统一空间)
+  data_name: h1
+
+  # LeRobot v3.0 数据集根目录(meta/ + data/ + videos/ 三件套)
+  train_path: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v2
+
+  # robot_config 查找根目录(与 data_name 拼成 configs/robot_configs/h1.yaml)
+  robot_config_root: configs/robot_configs
+
+  # 55 维统一动作空间的槽位声明("槽位名: 维度")。
+  # ★只声明≠生效:robot_config 里写了映射的维度才是真的从数据来的;
+  #   未映射的槽位仅为对齐预训练模型头维度保留(全 0 填充)。
+  #   改动槽位集合必须与预训练模型一致,否则投影层尺寸对不上
+  joints:
+    - arm.position: 14                 # 双臂关节:左 7 + 右 7,全在动,真实映射
+    - end.position: 14                 # 末端位姿 6D+夹爪:本数据未映射(仿真里臂关节已足够描述)
+    - effector.position: 2             # 夹爪开合 0~1 连续(std 0.26,有信息量),真实映射
+    - waist.position: 4                # ★声明但不映射 —— 腰部全程静止(std≈2e-4),
+                                       #   映射进 meanstd 会被除以接近 0 的 std 放大成噪声
+    - head.position: 2                 # 头部云台 2 维在追踪目标(range -0.46~0.86 rad),真实映射
+    - base.position: 3                 # 底盘 xyz:人形固定底座,未映射
+    - hand.position: 12                # 灵巧手手指:H1 用平行夹爪非灵巧手,未映射
+
+  # 要喂给模型的相机流(名字 = 统一空间里的相机名,robot_config 负责
+  # 把数据集里的原始相机名映射到这些名字)
+  cameras:
+    - camera_top                       # 头顶全局视野 ← 数据集 head_rgb
+    - camera_wrist_left                # 左手腕视野   ← left_wrist_rgb
+    - camera_wrist_right               # 右手腕视野   ← right_wrist_rgb
+
+  # 任务文本从数据哪个字段来:
+  #   global=只用一条全局任务串(本数据只有 "Pick up the red cube...")
+  #   both/subtask=还会找子任务字段(本数据没有,默认值 both 会报错)
+  prompt_type: global
+
+  # 每个槽位的归一化方式(★必须与算统计的 h1_norm.yaml 逐槽位一致,
+  #   两把钥匙配同一把锁,不一致=训练输入分布和统计表错位)
+  #   meanstd=(x-mean)/std,适合各维连续平滑、无长尾离群点的数据
+  #   bounds 系=(x-q01)/(q99-q01) 截断到 [-1,1],适合有离群点的真机数据
+  norm_type:
+    - arm.position: meanstd            # 关节角平滑无离群点
+    - end.position: meanstd
+    - effector.position: meanstd       # 夹爪连续开合
+    - waist.position: meanstd          # 未映射,此行只为声明完整性
+    - head.position: meanstd
+    - base.position: meanstd
+    - hand.position: meanstd
+
+  # 归一化统计表(mean/std/q01/q99...),compute_norm_stats 对 78108 帧
+  # 全量统计生成。改了映射(robot_config)就必须重算,否则统计表过期
+  norm_stats_file: assets/norm_stats/h1.json
+
+  # DataLoader 工作进程数:3 路 av1 视频解码是 CPU 密集操作,
+  # 24 核 CPU 给 8 个 worker 刚好喂饱 GPU(太大反而抢训练主进程的核)
+  num_workers: 8
+
+  # 是否加载"未来帧"图像。未来帧只被视频/深度蒸馏支线用到(架构图 D2/D3);
+  # 关蒸馏时关掉它,省显存省 IO。以后开蒸馏必须改回 true
+  use_future_image: false
+
+# =====================================================================
+# 三、train 段 —— 怎么训:批次/优化器/损失/显存/时长/MoE 全在这
+# =====================================================================
+train:
+  # ---------- 输出与监控 ----------
+  output_dir: output/h1               # checkpoint + 日志 + TensorBoard 的根目录
+  moe_monitor_interval: 1000          # 每多少步记录一次 MoE 专家级细粒度指标
+                                      # (moe_maxvio/moe_entropy 等按层展开的曲线,
+                                      #  就是 TB 里那一大片 moe_* 标签的来源)
+
+  # ---------- 显存三大开关(32GB 单卡的生命线) ----------
+  # 梯度检查点:前向不存中间激活、反向时重算 —— 用约 30% 时间换大幅显存。
+  # 显存富余后改 false 可提速
+  enable_gradient_checkpointing: true
+
+  # 预计算视觉 patch 网格(t,h,w):把每张图切块后的网格元数据在数据侧
+  # 提前算好,不在训练循环里反复算(Qwen3-VL ViT 需要 grid_thw 定位 patch)
+  precompute_grid_thw: true
+
+  # VLM 侧用因果注意力(causal mask)。VLA 惯例:视觉文本流保持 LM 式
+  # 单向注意力,与预训练一致;动作专家侧另有自己的注意力设计
+  vlm_causal: true
+
+  # VLM 参数是否交给 FSDP 管理(配合下面 module_fsdp_enable 做模块级包裹;
+  # 单卡无 shard 时主要用于统一参数 dtype/显存放置管理)
+  vlm_fsdp: true
+
+  # 注意力算子实现:flex_cached=flash-attention 家族的 flex_attention
+  # 且缓存 block-mask(同一 batch 结构的 mask 不重复构建)。
+  # 单卡训练吞吐的主力;比 sdpa 快,比 full compile 兼容性好
+  attention_implementation: flex_cached
+
+  # ---------- MoE 动作专家结构(与预训练权重绑定,不可改!) ----------
+  # 动作专家共 36 层,每层都是 MoE(列表列出全部层号)。
+  # 这些结构参数必须与预训练 checkpoint 完全一致,改了权重就对不上
+  use_moe: true                       # 动作专家用 MoE(改 false=退化为稠密 FFN,权重不兼容)
+  token_moe_layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]
+  token_num_experts: 32               # 每层专家个数
+  token_top_k: 4                      # 每个 token 激活 4 个专家(32 选 4,稀疏激活)
+  token_moe_intermediate_size: 512    # 每个路由专家的 FFN 中间维
+  token_shared_intermediate_size: 704 # 共享专家(必激活)的 FFN 中间维
+  bias_update_speed: 0                # 专家偏置自动调载速度(DeepSeek-V3 式负载均衡)。
+                                      #   0=关闭,负载均衡完全交给下面两个辅助损失
+  sequence_wise_mode: "per_sequence"  # 序列级均衡损失的组织方式:按每条动作序列算
+  sequence_wise_loss_coeff: 1e-3      # SeqWise 损失系数:惩罚"整条序列全涌向同一专家"
+  router_z_loss_coeff: 1e-4           # RouterZ 损失系数:压制路由 logits 过大,稳定训练
+  router_activation: "sigmoid"        # 路由打分函数(sigmoid 天然适配 top-k 稀疏选择)
+  routed_scaling_factor: 4.0          # 路由输出放大系数(补偿 top-k 稀疏激活的量级,
+                                      #   常与 sigmoid 搭配,经验值=专家数/激活数的量级)
+  use_shared_expert_gate: false       # 共享专家不加门控(始终满额参与)
+  use_moe_expert_lr: true             # 专家参数用独立学习率(TB 里 Expert_LR≈2.83e-4,
+                                      #   略高于主 lr —— 稀疏激活的专家更新次数少,补一点)
+
+  # ---------- 并行策略(单卡配置) ----------
+  data_parallel_mode: fsdp2           # 用 FSDP2 做数据并行管理(即使单卡也走这条路)
+  enable_full_shard: false            # 不做参数全分片(单卡无处可分;多卡才开)
+  module_fsdp_enable: true            # 按模块粒度包裹 FSDP(与全 shard 相对,
+                                      #   单卡下主要影响参数管理方式)
+  ulysses_parallel_size: 1            # 长序列上下文并行的分片数;1=不切序列
+                                      #   (多卡训长视频/长动作序列时才 >1)
+
+  # ---------- 杂项开关 ----------
+  use_compile: false                  # torch.compile:首跑先关(编译预热要几分钟且可能
+                                      #   踩图模式坑);流程跑通稳定后改 true 能提速 20%+
+  use_wandb: false                    # 不用Weights&Biases 在线看板(用本地 TensorBoard)
+  rmpad: false                        # 注意力是否去 padding(rmpad=packed 序列变长训练);
+                                      #   我们的 batch 内序列长度一致,不需要
+  rmpad_with_pos_ids: false           # rmpad 时是否传显式 position_ids(配合 rmpad 用)
+  freeze_vision_encoder: false        # 是否单独冻结视觉塔。false —— 因为
+                                      #   train_expert_only 已经把整个 VLM(含视觉塔)冻结了,
+                                      #   这个更细粒度的开关就不需要再开
+
+  # ---------- 输入维度 ----------
+  tokenizer_max_length: 72            # 任务文本最大 token 数(单任务一句话,72 绰绰有余)
+  action_dim: 55                      # 模型动作头输出维度 = 统一动作空间 55 维
+  max_action_dim: 55                  # 架构允许的最大动作维(槽位声明总和,与权重绑定)
+  max_state_dim: 55                   # 同上,状态侧最大维(动作/状态同空间设计)
+
+  # ---------- 优化器 ----------
+  optimizer: muon                     # Muon 优化器:动量/方差/Kahan 补偿缓冲全按 bf16
+                                      #   设计(补偿修正 bf16 舍入吞掉的小更新),
+                                      #   与我们"纯 bf16 训练"配套;嫌慢可注释掉换 AdamW
+  train_expert_only: true             # ★ 只训动作专家,冻结整个 Qwen-VLM(32GB 单卡必须):
+                                      #   全参=权重12G+梯度12G+优化器状态12G,首步反向即 OOM;
+                                      #   冻结 VLM 后梯度/优化器/激活只剩专家(~1.7B),
+                                      #   pi0 同款微调配方;VLM 表征来自预训练,单任务微调
+                                      #   只需调动作生成
+  lr: 1.0e-4                          # 学习率:仿真配方(RoboTwin 同款);单任务 78k 帧
+                                      #   微调的常用量级;真机数据建议减半试起
+  lr_decay_style: constant            # 学习率恒定不衰减:微调轮数少、数据单一,
+                                      #   预热衰减收益小反而引入超参麻烦
+  loss_type: L1_fm                    # 损失:flow-matching 去噪方向误差取 L1。
+                                      #   仿真数据用 L1(真机默认 MSE fm):动作平滑
+                                      #   (mean|a-s|=0.0098)但夹爪有阶跃(max 1.05),
+                                      #   L1 不平方放大稀疏跳变,对这类信号更稳
+
+  # ---------- 批次与时长 ----------
+  chunk_size: 50                      # 一次前向预测的动作块长度:50 步=1.67s(30fps),
+                                      #   覆盖一次抓/放过渡;episode 均长 773 帧,
+                                      #   训练时从各处随机切 50 帧的窗口
+  num_train_epochs: 30                # epoch 上限:实际由 max_steps 先到先停,
+                                      #   30 只是保险上限(1 epoch=19527 步,30 远够)
+  micro_batch_size: 1                 # 单次前向的样本数:显存只看 micro!5090 32GB
+                                      #   上 6B 模型 + 检查点机制的保守值
+  gradient_accumulation_steps: 4      # 梯度累积:4 次 micro 的梯度攒一起再更新,
+                                      #   把等效 batch 做到 4 —— MoE 路由 + flow-matching
+                                      #   在 batch=1 下噪声大;4 也是官方 4卡×micro1 的等效量
+  global_batch_size: 4                # 全局批次 = micro 1 × 1卡 × accum 4(框架自动
+                                      #   核算,手写必须与此一致,不一致启动即报错)
+  max_steps: 20000                    # 总步数上限(先到先停):20000 步 × global 4
+                                      #   = 8 万样本 ≈ 1 个 epoch(78108 帧);
+                                      #   跑完看 loss 再决定是否加
+
+  # ---------- 存档 ----------
+  ckpt_manager: dcp                   # checkpoint 管理器用 PyTorch Distributed Checkpoint:
+                                      #   结构化保存 model/optimizer/extra_state 三部分,
+                                      #   支持精确续训;每档另异步导出 hf_ckpt(评估/部署用)
+  save_steps: 2500                    # 每 2500 步存一档(全程 8 档),便于挑最佳 checkpoint
+  save_epochs: 29000                  # 按_epoch_存档的间隔:设成天文数字,
+                                      #   确保只有 save_steps 生效(不然同一进度存两遍)
+  enable_resume: true                 # 启动时自动找 output/h1 里最新一档续训
+                                      #   ( optimizer 状态一起恢复,数学上无缝衔接)
+
+  # ---------- 精度(32GB 单卡的核心改造) ----------
+  enable_mixed_precision: false       # ★ 32GB 单卡必须关:开=true 会把 6B 模型整体转 fp32
+                                      #   (24GB 常驻权重),首步反向即 OOM;官方 enable_fp32:true
+                                      #   是大显存集群的配置。关掉后模型保持 bf16(12GB),
+                                      #   Muon 动量/补偿缓冲本就是 bf16 设计,配套使用
+  enable_fp32: false                  # 纯 fp32 计算策略(FSDP2 mp_policy),同理关闭
+                                      #   (bf16 计算)。两张卡都关 = 全程 bf16 的
+                                      #   权重+计算+优化器状态
+
+  # ---- align_params(深度/视频蒸馏)首次训练关闭;开启方法:----
+  # 1) 把 real_robot.yaml 的 align_params 段复制到此处
+  # 2) 路径改成:
+  #    depth.moge_path:   models/moge-2-vitb-normal/model.pt
+  #    depth.morgbd_path: models/lingbot-vla-v2-6b/depth/model.pt
+  #    video.ckpt_path:   models/lingbot-vla-v2-6b/dino_video/teacher_step_10000.pth
+  #    video.config_path: models/lingbot-vla-v2-6b/dino_video/config.yaml
+  # 3) data.use_future_image 改回 true

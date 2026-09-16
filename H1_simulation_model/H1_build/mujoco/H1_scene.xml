@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco model="H1">
+  <compiler angle="radian" />
+  <option timestep="0.001" gravity="0 0 -9.81" integrator="implicitfast" iterations="100" tolerance="1e-10" cone="elliptic" noslip_iterations="10" />
+  <default>
+    <default class="hbn110_087">
+      <position kp="5500" kv="550" />
+      <joint armature="0.12" frictionloss="0.25" />
+    </default>
+    <default class="hbn90_052">
+      <position kp="4500" kv="450" />
+      <joint armature="0.1" frictionloss="0.2" />
+    </default>
+    <default class="hbn80_031">
+      <position kp="3500" kv="350" />
+      <joint armature="0.06" frictionloss="0.12" />
+    </default>
+    <default class="hbn70_010">
+      <position kp="2000" kv="200" />
+      <joint armature="0.025" frictionloss="0.06" />
+    </default>
+    <default class="hbn52_005">
+      <position kp="600" kv="60" />
+      <joint armature="0.01" frictionloss="0.03" />
+    </default>
+    <default class="omnipicker_joint">
+      <joint damping="0.1" armature="0.001" frictionloss="0.01" />
+      <position kp="80" kv="4" />
+    </default>
+    <default class="visual">
+      <geom contype="0" conaffinity="0" group="2" />
+    </default>
+    <default class="collision">
+      <geom contype="0" conaffinity="1" group="3" rgba="0.2 0.8 0.2 0.15" friction="0.8 0.02 0.001" condim="3" solref="0.01 1" solimp="0.9 0.95 0.001" />
+    </default>
+    <default class="finger_collision">
+      <geom contype="0" conaffinity="1" group="3" rgba="1 0.25 0.1 0.2" priority="2" margin="0.001" friction="2.0 0.05 0.005" condim="6" solref="0.001 1" solimp="0.99 0.9999 0.0001" />
+    </default>
+    <default class="floor">
+      <geom type="plane" contype="1" conaffinity="1" friction="1.0 0.02 0.001" condim="3" material="groundplane" />
+    </default>
+  </default>
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="../meshes/base_link.STL" />
+    <mesh name="waist_Link_j1" content_type="model/stl" file="../meshes/waist_Link_j1.STL" />
+    <mesh name="waist_link_J2" content_type="model/stl" file="../meshes/waist_link_J2.STL" />
+    <mesh name="left_link_J1" content_type="model/stl" file="../meshes/left_link_J1.STL" />
+    <mesh name="Left_Link_J2" content_type="model/stl" file="../meshes/Left_Link_J2.STL" />
+    <mesh name="Left_Link_J3" content_type="model/stl" file="../meshes/Left_Link_J3.STL" />
+    <mesh name="left_Link_j4" content_type="model/stl" file="../meshes/left_Link_j4.STL" />
+    <mesh name="Left_Link_J5" content_type="model/stl" file="../meshes/Left_Link_J5.STL" />
+    <mesh name="Left_Link_J6" content_type="model/stl" file="../meshes/Left_Link_J6.STL" />
+    <mesh name="Left_Link_J7" content_type="model/stl" file="../meshes/Left_Link_J7.STL" />
+    <mesh name="Right_Link_J1" content_type="model/stl" file="../meshes/Right_Link_J1.STL" />
+    <mesh name="Right_Link_J2" content_type="model/stl" file="../meshes/Right_Link_J2.STL" />
+    <mesh name="Right_Link_J3" content_type="model/stl" file="../meshes/Right_Link_J3.STL" />
+    <mesh name="Right_Link_J4" content_type="model/stl" file="../meshes/Right_Link_J4.STL" />
+    <mesh name="Right_Link_J5" content_type="model/stl" file="../meshes/Right_Link_J5.STL" />
+    <mesh name="Right_Link_J6" content_type="model/stl" file="../meshes/Right_Link_J6.STL" />
+    <mesh name="Right_Link_J7" content_type="model/stl" file="../meshes/Right_Link_J7.STL" />
+    <mesh name="head_j1" content_type="model/stl" file="../meshes/head_j1.STL" />
+    <mesh name="Head_Link_j2" content_type="model/stl" file="../meshes/Head_Link_j2.STL" />
+    <mesh name="omnipicker_base_link" content_type="model/obj" file="../meshes/omnipicker/base_link.obj" />
+    <mesh name="omnipicker_narrow1_Link" content_type="model/stl" file="../meshes/omnipicker/narrow1_Link.STL" />
+    <mesh name="omnipicker_narrow2_Link" content_type="model/stl" file="../meshes/omnipicker/narrow2_Link.STL" />
+    <mesh name="omnipicker_narrow3_Link" content_type="model/stl" file="../meshes/omnipicker/narrow3_Link.STL" />
+    <mesh name="omnipicker_narrow_loop_Link" content_type="model/stl" file="../meshes/omnipicker/narrow_loop_Link.STL" />
+    <mesh name="omnipicker_wide1_Link" content_type="model/stl" file="../meshes/omnipicker/wide1_Link.STL" />
+    <mesh name="omnipicker_wide2_Link" content_type="model/stl" file="../meshes/omnipicker/wide2_Link.STL" />
+    <mesh name="omnipicker_wide3_Link" content_type="model/stl" file="../meshes/omnipicker/wide3_Link.STL" />
+    <mesh name="omnipicker_wide_loop_Link" content_type="model/stl" file="../meshes/omnipicker/wide_loop_Link.STL" />
+    <texture name="groundplane" type="2d" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texrepeat="5 5" texuniform="true" reflectance="0.2" />
+    <texture name="skybox" type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+  </asset>
+  <visual>
+    <global offwidth="3840" offheight="2160" />
+  </visual>
+  <worldbody>
+    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="base_link" class="visual" />
+    <body name="waist_Link_j1" pos="0 0 0.641">
+      <inertial pos="-7.2904e-06 -0.0083807 0.096361" quat="0.986403 0.164342 -0.000133284 0.000193956" mass="1.677" diaginertia="0.0079723 0.00674706 0.00546314" />
+      <joint name="waist_J1" pos="0 0 0" axis="0 0 -1" range="-3.1415 3.1415" actuatorfrcrange="-52 52" damping="1" class="hbn90_052" />
+      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="waist_Link_j1" class="visual" />
+      <body name="waist_link_J2" pos="0 0 0.16">
+        <inertial pos="-3.6907e-07 -0.0043997 0.20706" quat="0.707111 -0.00014751 0.000150335 0.707103" mass="2.9129" diaginertia="0.014161 0.013533 0.006488" />
+        <joint name="waist_J2" pos="0 0 0" axis="0 1 0" range="0 1.5708" actuatorfrcrange="-87 87" damping="1.2" class="hbn110_087" />
+        <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="waist_link_J2" class="visual" />
+        <body name="left_link_J1" pos="0 0.1505 0.34">
+          <inertial pos="-0.0043288 0.069057 -4.5569e-05" quat="0.707284 0.706805 0.0103445 0.00838972" mass="0.4143" diaginertia="0.000945777 0.000786419 0.000623874" />
+          <joint name="Left_J1" pos="0 0 0" axis="0 1 0" range="-3.1415 3.1415" actuatorfrcrange="-31 31" damping="0.6" class="hbn80_031" />
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="left_link_J1" class="visual" />
+          <body name="Left_Link_J2" pos="0 0.075 0">
+            <inertial pos="-0.0036277 2.762e-08 -0.039885" quat="0.698477 -0.110162 -0.110189 0.698465" mass="0.52341" diaginertia="0.001254 0.00108389 0.000962597" />
+            <joint name="Left_J2" pos="0 0 0" axis="1 0 0" range="-0.349 2.0944" actuatorfrcrange="-31 31" damping="0.6" class="hbn80_031" />
+            <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J2" class="visual" />
+            <body name="Left_Link_J3" pos="0 0 -0.093">
+              <inertial pos="0.0056911 -0.0019239 -0.13085" quat="0.704019 -0.0420963 -0.0233801 0.708547" mass="0.57095" diaginertia="0.00332533 0.00329003 0.000789789" />
+              <joint name="Left_J3" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-10 10" damping="0.3" class="hbn70_010" />
+              <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Left_Link_J3" class="visual" />
+              <body name="left_Link_j4" pos="0.012 0 -0.2065">
+                <inertial pos="-0.00025246 -0.0039161 -0.041415" quat="0.967336 0.253359 0.00785473 -0.00304025" mass="0.44416" diaginertia="0.000952201 0.00073989 0.000628199" />
+                <joint name="Left_J4" pos="0 0 0" axis="0 -1 0" range="0 2.0944" actuatorfrcrange="-10 10" damping="0.3" class="hbn70_010" />
+                <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="left_Link_j4" class="visual" />
+                <body name="Left_Link_J5" pos="0 0 -0.0948">
+                  <inertial pos="-3.7549e-06 0.0015048 -0.11283" quat="0.999891 0.0147562 6.35803e-05 0.00107648" mass="0.4197" diaginertia="0.0021747 0.00216223 0.000401226" />
+                  <joint name="Left_J5" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                  <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J5" class="visual" />
+                  <body name="Left_Link_J6" pos="0 0 -0.2049">
+                    <inertial pos="-0.0010919 0.0066883 -0.030929" quat="0.989093 -0.139522 0.0469063 -0.00537134" mass="0.16918" diaginertia="0.000177041 0.000157281 0.000146578" />
+                    <joint name="Left_J6" pos="0 0 0" axis="0 1 0" range="-0.6982 0.6982" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Left_Link_J6" class="visual" />
+                    <body name="Left_Link_J7" pos="0 0 -0.064">
+                      <inertial pos="-0.0023003 4.8562e-06 -0.019732" quat="0.488364 0.51153 0.512469 0.487046" mass="0.16822" diaginertia="0.00019906 0.000198256 0.000110834" />
+                      <joint name="Left_J7" pos="0 0 0" axis="1 0 0" range="-1.309 0.6982" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J7" class="visual" />
+                      <body name="left_omnipicker_mount" pos="0 0 -0.045" euler="0 3.14159265 0">
+                        <inertial pos="-0.0000552 0.000012341 0.03296193" mass="0.25641368" fullinertia="0.00046351 0.00044525 0.00010438 -1e-8 -1.04e-6 -5e-8" />
+                        <site name="left_omnipicker_tcp" pos="0 0 0.13" size="0.004" />
+                        <site name="left_omnipicker_wrist_ft_site" pos="0 0 0" size="0.006" />
+                        <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="omnipicker_base_link" class="visual" />
+                        <body name="left_omnipicker_hand_narrow1_Link" pos="0 -0.0195 0.0565" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.0094685 0.0068806 6.5437e-05" quat="0.488058 0.00022793 0.00062709 0.872811" mass="0.025428" diaginertia="2.65562e-06 1.69368e-06 1.5501e-06" />
+                          <joint name="left_omnipicker_hand_narrow1_joint" pos="0 0 0" axis="0 0 -1" range="-1.25 0.05" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow1_Link" class="visual" />
+                          <body name="left_omnipicker_hand_narrow2_Link" pos="0.030852 0.018551 0">
+                            <inertial pos="0.0088027 -0.007035 1.6424e-05" quat="0.259339 0.661207 -0.251356 0.657547" mass="0.0040132" diaginertia="1.70091e-07 1.66561e-07 5.03584e-08" />
+                            <joint name="left_omnipicker_hand_narrow2_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 0.38" class="omnipicker_joint" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow2_Link" class="visual" />
+                            <body name="left_omnipicker_hand_narrow3_Link" pos="0.018118 -0.01574 0">
+                              <inertial pos="0.012508 -0.0079729 9.4339e-05" quat="0.575033 0.575033 0.411506 0.411506" mass="0.018029" diaginertia="2.75843e-06 2.3252e-06 9.52273e-07" />
+                              <joint name="left_omnipicker_hand_narrow3_joint" pos="0 0 0" axis="0 0 -1" range="-0.22 0.08" class="omnipicker_joint" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow3_Link" class="visual" />
+                              <geom name="left_omnipicker_hand_narrow3_Link_collision" type="mesh" mesh="omnipicker_narrow3_Link" class="finger_collision" />
+                              <site name="left_omnipicker_hand_narrow3_Link_touch_site" type="box" pos="0.00079 0.00011 0.00664" size="0.0113679 0.0132906 0.0293811" rgba="1 0.2 0.1 0.08" group="4" />
+                            </body>
+                            <geom name="left_omnipicker_hand_narrow2_Link_collision" type="mesh" mesh="omnipicker_narrow2_Link" class="finger_collision" />
+                            <site name="left_omnipicker_hand_narrow2_Link_touch_site" type="box" pos="-0.00173 0 -0.00116" size="0.0071349 0.0056406 0.0183498" rgba="1 0.2 0.1 0.08" group="4" />
+                          </body>
+                          <geom name="left_omnipicker_hand_narrow1_Link_collision" type="mesh" mesh="omnipicker_narrow1_Link" class="finger_collision" />
+                          <site name="left_omnipicker_hand_narrow1_Link_touch_site" type="box" pos="-0.0008 -5e-05 0.00112" size="0.0130764 0.0187935 0.0279276" rgba="1 0.2 0.1 0.08" group="4" />
+                        </body>
+                        <body name="left_omnipicker_hand_narrow_loop_Link" pos="0 -0.021633 0.07387" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.014869 -0.0036066 0.00029307" quat="0.800794 2.10378e-06 -6.78039e-07 0.59894" mass="0.022591" diaginertia="4.76981e-06 4.35879e-06 6.0445e-07" />
+                          <joint name="left_omnipicker_hand_narrow_loop_joint" pos="0 0 0" axis="0 0 -1" range="-1.65 0.05" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow_loop_Link" class="visual" />
+                          <geom name="left_omnipicker_hand_narrow_loop_Link_collision" type="mesh" mesh="omnipicker_narrow_loop_Link" class="finger_collision" />
+                        </body>
+                        <body name="left_omnipicker_hand_wide1_Link" pos="0 0.0195 0.0565" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.0095051 -0.0068479 6.8268e-05" quat="0.872477 -0.000843631 -0.000472499 0.488655" mass="0.025428" diaginertia="2.65502e-06 1.69428e-06 1.5501e-06" />
+                          <joint name="left_omnipicker_hand_wide1_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 1.25" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide1_Link" class="visual" />
+                          <body name="left_omnipicker_hand_wide2_Link" pos="0.030852 -0.018551 0">
+                            <inertial pos="0.0088027 0.007035 -1.6424e-05" quat="-0.251356 0.657548 0.259339 0.661207" mass="0.0040132" diaginertia="1.70091e-07 1.66561e-07 5.03584e-08" />
+                            <joint name="left_omnipicker_hand_wide2_joint" pos="0 0 0" axis="0 0 -1" range="-0.38 0.05" class="omnipicker_joint" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide2_Link" class="visual" />
+                            <body name="left_omnipicker_hand_wide3_Link" pos="0.018118 0.01574 0">
+                              <inertial pos="0.016206 0.0094593 4.7668e-05" quat="0.574355 3.4175e-06 6.47256e-06 0.818606" mass="0.035835" diaginertia="1.16461e-05 8.09447e-06 4.6309e-06" />
+                              <joint name="left_omnipicker_hand_wide3_joint" pos="0 0 0" axis="0 0 -1" range="-0.08 0.22" class="omnipicker_joint" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide3_Link" class="visual" />
+                              <geom name="left_omnipicker_hand_wide3_Link_collision" type="mesh" mesh="omnipicker_wide3_Link" class="finger_collision" />
+                              <site name="left_omnipicker_hand_wide3_Link_touch_site" type="box" pos="-0.00038 -0.00324 0" size="0.0113373 0.0294117 0.0307938" rgba="1 0.2 0.1 0.08" group="4" />
+                            </body>
+                            <geom name="left_omnipicker_hand_wide2_Link_collision" type="mesh" mesh="omnipicker_wide2_Link" class="finger_collision" />
+                            <site name="left_omnipicker_hand_wide2_Link_touch_site" type="box" pos="0.00173 0 -0.00116" size="0.0071349 0.0056406 0.0183498" rgba="1 0.2 0.1 0.08" group="4" />
+                          </body>
+                          <geom name="left_omnipicker_hand_wide1_Link_collision" type="mesh" mesh="omnipicker_wide1_Link" class="finger_collision" />
+                          <site name="left_omnipicker_hand_wide1_Link_touch_site" type="box" pos="0.00091 -5e-05 0.0011" size="0.0130509 0.0187986 0.0279633" rgba="1 0.2 0.1 0.08" group="4" />
+                        </body>
+                        <body name="left_omnipicker_hand_wide_loop_Link" pos="0 0.021633 0.07387" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.016268 0.0040555 0.00030323" quat="0.599119 -2.137e-06 -5.96717e-07 0.80066" mass="0.025142" diaginertia="6.26903e-06 5.85397e-06 6.2389e-07" />
+                          <joint name="left_omnipicker_hand_wide_loop_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 1.65" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide_loop_Link" class="visual" />
+                          <geom name="left_omnipicker_hand_wide_loop_Link_collision" type="mesh" mesh="omnipicker_wide_loop_Link" class="finger_collision" />
+                        </body>
+                        <geom name="left_omnipicker_mount_collision" type="box" class="collision" pos="-0.0001 0 0.00707" size="0.0274608 0.0380928 0.0401808" />
+                        <camera name="left_wrist_rgb" pos="-0.06 0 0.055" xyaxes="0 -1 0 -0.94089 0 0.33872" fovy="100" />
+                        <body name="left_omnipicker_tcp_link" pos="0 0 0.13" />
+                      </body>
+                      <geom name="Left_Link_J7_collision" type="box" class="collision" pos="0 0.00387 0.00019" size="0.0297792 0.0364896 0.04464" />
+                    </body>
+                    <geom name="Left_Link_J6_collision" type="box" class="collision" pos="0.0012 -0.00112 0.00218" size="0.0370848 0.0448272 0.0612672" />
+                  </body>
+                  <geom name="Left_Link_J5_collision" type="box" class="collision" pos="0 -0.00099 0.00103" size="0.0335952 0.0362112 0.113318" />
+                </body>
+                <geom name="left_Link_j4_collision" type="box" class="collision" pos="0 -0.00922 0.00104" size="0.0393552 0.0587952 0.0741264" />
+              </body>
+              <geom name="Left_Link_J3_collision" type="box" class="collision" pos="0.00143 -0.00268 0.00176" size="0.042216 0.0432816 0.120653" />
+            </body>
+            <geom name="Left_Link_J2_collision" type="box" class="collision" pos="0 0.00489 0.00444" size="0.0456048 0.0548592 0.0724752" />
+          </body>
+          <geom name="left_link_J1_collision" type="box" class="collision" pos="0.0016 0 0.00878" size="0.040608 0.0456048 0.0620784" />
+        </body>
+        <body name="Right_Link_J1" pos="0 -0.1505 0.34">
+          <inertial pos="0.0043288 -0.069057 -4.5569e-05" quat="0.706805 0.707284 0.00838972 0.0103445" mass="0.4143" diaginertia="0.000945777 0.000786419 0.000623874" />
+          <joint name="Right_J1" pos="0 0 0" axis="0 -1 0" range="-3.1416 3.1416" actuatorfrcrange="-31 31" damping="0.6" class="hbn80_031" />
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J1" class="visual" />
+          <body name="Right_Link_J2" pos="0.001 -0.075 0">
+            <inertial pos="0.0038069 -3.3841e-08 -0.040778" quat="0.697993 0.113182 0.113209 0.697982" mass="0.51194" diaginertia="0.0012505 0.00107723 0.000958757" />
+            <joint name="Right_J2" pos="0 0 0" axis="-1 0 0" range="-0.349 2.0944" actuatorfrcrange="-31 31" damping="0.6" class="hbn80_031" />
+            <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J2" class="visual" />
+            <body name="Right_Link_J3" pos="0 0 -0.093">
+              <inertial pos="0.0066911 -0.0019239 -0.13085" quat="0.704019 -0.0420963 -0.0233801 0.708547" mass="0.57095" diaginertia="0.00332533 0.00329003 0.000789789" />
+              <joint name="Right_J3" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-10 10" damping="0.3" class="hbn70_010" />
+              <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J3" class="visual" />
+              <body name="Right_Link_J4" pos="0.013 0 -0.2065">
+                <inertial pos="-0.00025246 -0.0039161 -0.041415" quat="0.967336 0.253359 0.00785473 -0.00304025" mass="0.44416" diaginertia="0.000952201 0.00073989 0.000628199" />
+                <joint name="Right_J4" pos="0 0 0" axis="0 -1 0" range="0 2.0944" actuatorfrcrange="-10 10" damping="0.3" class="hbn70_010" />
+                <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J4" class="visual" />
+                <body name="Right_Link_J5" pos="0 0 -0.0948">
+                  <inertial pos="3.7549e-06 -0.0015048 -0.11283" quat="0.999891 -0.0147562 -6.35803e-05 0.00107648" mass="0.4197" diaginertia="0.0021747 0.00216223 0.000401226" />
+                  <joint name="Right_J5" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                  <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Right_Link_J5" class="visual" />
+                  <body name="Right_Link_J6" pos="0 0 -0.2049">
+                    <inertial pos="0.0010919 -0.0066883 -0.030929" quat="0.989093 0.139522 -0.0469063 -0.00537134" mass="0.16918" diaginertia="0.000177041 0.000157281 0.000146578" />
+                    <joint name="Right_j6" pos="0 0 0" axis="0 1 0" range="-0.6982 0.6982" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Right_Link_J6" class="visual" />
+                    <body name="Right_Link_J7" pos="0 0 -0.064">
+                      <inertial pos="0.0023003 -4.8562e-06 -0.019732" quat="0.51153 0.488364 0.487046 0.512469" mass="0.16822" diaginertia="0.00019906 0.000198256 0.000110834" />
+                      <joint name="Right_J7" pos="0 0 0" axis="1 0 0" range="-0.6982 1.309" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+                      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J7" class="visual" />
+                      <body name="right_omnipicker_mount" pos="0 0 -0.045" euler="3.14159265 0 0">
+                        <inertial pos="-0.0000552 0.000012341 0.03296193" mass="0.25641368" fullinertia="0.00046351 0.00044525 0.00010438 -1e-8 -1.04e-6 -5e-8" />
+                        <site name="right_omnipicker_tcp" pos="0 0 0.13" size="0.004" />
+                        <site name="right_omnipicker_wrist_ft_site" pos="0 0 0" size="0.006" />
+                        <geom type="mesh" rgba="0.89804 0.91765 0.92941 1" mesh="omnipicker_base_link" class="visual" />
+                        <body name="right_omnipicker_hand_narrow1_Link" pos="0 -0.0195 0.0565" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.0094685 0.0068806 6.5437e-05" quat="0.488058 0.00022793 0.00062709 0.872811" mass="0.025428" diaginertia="2.65562e-06 1.69368e-06 1.5501e-06" />
+                          <joint name="right_omnipicker_hand_narrow1_joint" pos="0 0 0" axis="0 0 -1" range="-1.25 0.05" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow1_Link" class="visual" />
+                          <body name="right_omnipicker_hand_narrow2_Link" pos="0.030852 0.018551 0">
+                            <inertial pos="0.0088027 -0.007035 1.6424e-05" quat="0.259339 0.661207 -0.251356 0.657547" mass="0.0040132" diaginertia="1.70091e-07 1.66561e-07 5.03584e-08" />
+                            <joint name="right_omnipicker_hand_narrow2_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 0.38" class="omnipicker_joint" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow2_Link" class="visual" />
+                            <body name="right_omnipicker_hand_narrow3_Link" pos="0.018118 -0.01574 0">
+                              <inertial pos="0.012508 -0.0079729 9.4339e-05" quat="0.575033 0.575033 0.411506 0.411506" mass="0.018029" diaginertia="2.75843e-06 2.3252e-06 9.52273e-07" />
+                              <joint name="right_omnipicker_hand_narrow3_joint" pos="0 0 0" axis="0 0 -1" range="-0.22 0.08" class="omnipicker_joint" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow3_Link" class="visual" />
+                              <geom name="right_omnipicker_hand_narrow3_Link_collision" type="mesh" mesh="omnipicker_narrow3_Link" class="finger_collision" />
+                              <site name="right_omnipicker_hand_narrow3_Link_touch_site" type="box" pos="0.00079 0.00011 0.00664" size="0.0113679 0.0132906 0.0293811" rgba="1 0.2 0.1 0.08" group="4" />
+                            </body>
+                            <geom name="right_omnipicker_hand_narrow2_Link_collision" type="mesh" mesh="omnipicker_narrow2_Link" class="finger_collision" />
+                            <site name="right_omnipicker_hand_narrow2_Link_touch_site" type="box" pos="-0.00173 0 -0.00116" size="0.0071349 0.0056406 0.0183498" rgba="1 0.2 0.1 0.08" group="4" />
+                          </body>
+                          <geom name="right_omnipicker_hand_narrow1_Link_collision" type="mesh" mesh="omnipicker_narrow1_Link" class="finger_collision" />
+                          <site name="right_omnipicker_hand_narrow1_Link_touch_site" type="box" pos="-0.0008 -5e-05 0.00112" size="0.0130764 0.0187935 0.0279276" rgba="1 0.2 0.1 0.08" group="4" />
+                        </body>
+                        <body name="right_omnipicker_hand_narrow_loop_Link" pos="0 -0.021633 0.07387" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.014869 -0.0036066 0.00029307" quat="0.800794 2.10378e-06 -6.78039e-07 0.59894" mass="0.022591" diaginertia="4.76981e-06 4.35879e-06 6.0445e-07" />
+                          <joint name="right_omnipicker_hand_narrow_loop_joint" pos="0 0 0" axis="0 0 -1" range="-1.65 0.05" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_narrow_loop_Link" class="visual" />
+                          <geom name="right_omnipicker_hand_narrow_loop_Link_collision" type="mesh" mesh="omnipicker_narrow_loop_Link" class="finger_collision" />
+                        </body>
+                        <body name="right_omnipicker_hand_wide1_Link" pos="0 0.0195 0.0565" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.0095051 -0.0068479 6.8268e-05" quat="0.872477 -0.000843631 -0.000472499 0.488655" mass="0.025428" diaginertia="2.65502e-06 1.69428e-06 1.5501e-06" />
+                          <joint name="right_omnipicker_hand_wide1_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 1.25" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide1_Link" class="visual" />
+                          <body name="right_omnipicker_hand_wide2_Link" pos="0.030852 -0.018551 0">
+                            <inertial pos="0.0088027 0.007035 -1.6424e-05" quat="-0.251356 0.657548 0.259339 0.661207" mass="0.0040132" diaginertia="1.70091e-07 1.66561e-07 5.03584e-08" />
+                            <joint name="right_omnipicker_hand_wide2_joint" pos="0 0 0" axis="0 0 -1" range="-0.38 0.05" class="omnipicker_joint" />
+                            <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide2_Link" class="visual" />
+                            <body name="right_omnipicker_hand_wide3_Link" pos="0.018118 0.01574 0">
+                              <inertial pos="0.016206 0.0094593 4.7668e-05" quat="0.574355 3.4175e-06 6.47256e-06 0.818606" mass="0.035835" diaginertia="1.16461e-05 8.09447e-06 4.6309e-06" />
+                              <joint name="right_omnipicker_hand_wide3_joint" pos="0 0 0" axis="0 0 -1" range="-0.08 0.22" class="omnipicker_joint" />
+                              <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide3_Link" class="visual" />
+                              <geom name="right_omnipicker_hand_wide3_Link_collision" type="mesh" mesh="omnipicker_wide3_Link" class="finger_collision" />
+                              <site name="right_omnipicker_hand_wide3_Link_touch_site" type="box" pos="-0.00038 -0.00324 0" size="0.0113373 0.0294117 0.0307938" rgba="1 0.2 0.1 0.08" group="4" />
+                            </body>
+                            <geom name="right_omnipicker_hand_wide2_Link_collision" type="mesh" mesh="omnipicker_wide2_Link" class="finger_collision" />
+                            <site name="right_omnipicker_hand_wide2_Link_touch_site" type="box" pos="0.00173 0 -0.00116" size="0.0071349 0.0056406 0.0183498" rgba="1 0.2 0.1 0.08" group="4" />
+                          </body>
+                          <geom name="right_omnipicker_hand_wide1_Link_collision" type="mesh" mesh="omnipicker_wide1_Link" class="finger_collision" />
+                          <site name="right_omnipicker_hand_wide1_Link_touch_site" type="box" pos="0.00091 -5e-05 0.0011" size="0.0130509 0.0187986 0.0279633" rgba="1 0.2 0.1 0.08" group="4" />
+                        </body>
+                        <body name="right_omnipicker_hand_wide_loop_Link" pos="0 0.021633 0.07387" quat="-0.00464845 -0.70709 0.00464806 -0.707093">
+                          <inertial pos="0.016268 0.0040555 0.00030323" quat="0.599119 -2.137e-06 -5.96717e-07 0.80066" mass="0.025142" diaginertia="6.26903e-06 5.85397e-06 6.2389e-07" />
+                          <joint name="right_omnipicker_hand_wide_loop_joint" pos="0 0 0" axis="0 0 -1" range="-0.05 1.65" class="omnipicker_joint" />
+                          <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="omnipicker_wide_loop_Link" class="visual" />
+                          <geom name="right_omnipicker_hand_wide_loop_Link_collision" type="mesh" mesh="omnipicker_wide_loop_Link" class="finger_collision" />
+                        </body>
+                        <geom name="right_omnipicker_mount_collision" type="box" class="collision" pos="-0.0001 0 0.00707" size="0.0274608 0.0380928 0.0401808" />
+                        <camera name="right_wrist_rgb" pos="0.06 0 0.055" xyaxes="0 1 0 0.94089 0 0.33872" fovy="100" />
+                        <body name="right_omnipicker_tcp_link" pos="0 0 0.13" />
+                      </body>
+                      <geom name="Right_Link_J7_collision" type="box" class="collision" pos="0 0.00387 -0.00019" size="0.0297792 0.0364896 0.04464" />
+                    </body>
+                    <geom name="Right_Link_J6_collision" type="box" class="collision" pos="-0.0012 0.00112 0.00218" size="0.0370848 0.0448272 0.0612672" />
+                  </body>
+                  <geom name="Right_Link_J5_collision" type="box" class="collision" pos="0 0.00099 0.00103" size="0.0335952 0.0362112 0.113318" />
+                </body>
+                <geom name="Right_Link_J4_collision" type="box" class="collision" pos="0 -0.00922 0.00104" size="0.0393552 0.0587952 0.0741264" />
+              </body>
+              <geom name="Right_Link_J3_collision" type="box" class="collision" pos="0.00143 -0.00268 0.00176" size="0.042216 0.0432816 0.120653" />
+            </body>
+            <geom name="Right_Link_J2_collision" type="box" class="collision" pos="9e-05 0.00551 0.00046" size="0.0457152 0.0550896 0.0726768" />
+          </body>
+          <geom name="Right_Link_J1_collision" type="box" class="collision" pos="-0.0016 0 -0.00878" size="0.040608 0.0456048 0.0620784" />
+        </body>
+        <body name="head_j1" pos="0 0 0.4078">
+          <inertial pos="8.957e-10 -0.0015181 0.06193" quat="0.861505 0.50775 0 0" mass="0.16247" diaginertia="0.00017836 0.000166307 0.000162483" />
+          <joint name="head_j1" pos="0 0 0" axis="0 0 -1" range="-3.1416 3.1416" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="head_j1" class="visual" />
+          <body name="Head_Link_j2" pos="0 0 0.1">
+            <inertial pos="0.037458 0.012369 0.022008" quat="0.312832 0.312813 -0.634167 0.634127" mass="0.090281" diaginertia="4.57737e-05 4.29313e-05 1.8379e-05" />
+            <joint name="Head_j2" pos="0 0 0" axis="0 1 0" range="-0.7854 0.7854" actuatorfrcrange="-5 5" damping="0.15" class="hbn52_005" />
+            <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Head_Link_j2" class="visual" />
+            <geom name="Head_Link_j2_collision" type="box" class="collision" pos="9e-05 0.00114 0.0068" size="0.0292608 0.052728 0.0594" />
+            <camera name="head_rgb" pos="0.065 0 0.035" xyaxes="0 -1 0 0 0 1" fovy="75" />
+          </body>
+          <geom name="head_j1_collision" type="box" class="collision" pos="0 0.00228 -0.00574" size="0.0297696 0.0396144 0.0640848" />
+        </body>
+        <geom name="waist_link_J2_collision" type="box" class="collision" pos="0 -0.00042 -0.02175" size="0.0600192 0.139661 0.225398" />
+      </body>
+      <geom name="waist_Link_j1_collision" type="box" class="collision" pos="0 -0.00813 -0.00543" size="0.0599712 0.0816912 0.114715" />
+    </body>
+    <geom name="world_collision" type="box" class="collision" pos="0.00063 0.00012 -0.02628" size="0.0740304 0.0857328 0.331426" />
+    <light name="key_light" pos="0 0 2" dir="0 0 -1" directional="true" />
+    <geom name="floor" class="floor" pos="0 0 0" size="0 0 0.05" />
+    <body name="work_table" pos="0.8 0 0">
+      <geom name="tabletop" type="box" pos="0 0 0.621" size="0.5 0.5 0.02" rgba="0.55 0.32 0.16 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+      <geom name="table_leg_front_left" type="box" pos="-0.4 0.4 0.3005" size="0.035 0.035 0.3005" rgba="0.22 0.22 0.24 1" contype="1" conaffinity="1" friction="0.8 0.02 0.001" condim="3" />
+      <geom name="table_leg_front_right" type="box" pos="-0.4 -0.4 0.3005" size="0.035 0.035 0.3005" rgba="0.22 0.22 0.24 1" contype="1" conaffinity="1" friction="0.8 0.02 0.001" condim="3" />
+      <geom name="table_leg_back_left" type="box" pos="0.4 0.4 0.3005" size="0.035 0.035 0.3005" rgba="0.22 0.22 0.24 1" contype="1" conaffinity="1" friction="0.8 0.02 0.001" condim="3" />
+      <geom name="table_leg_back_right" type="box" pos="0.4 -0.4 0.3005" size="0.035 0.035 0.3005" rgba="0.22 0.22 0.24 1" contype="1" conaffinity="1" friction="0.8 0.02 0.001" condim="3" />
+    </body>
+    <body name="green_bin" pos="0.7 0 0">
+      <geom name="green_bin_bottom" type="box" pos="0 0 0.6435" size="0.05 0.05 0.0025" rgba="0.1 0.75 0.2 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+      <geom name="green_bin_wall_front" type="box" pos="-0.0475 0 0.691" size="0.0025 0.05 0.05" rgba="0.1 0.75 0.2 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+      <geom name="green_bin_wall_back" type="box" pos="0.0475 0 0.691" size="0.0025 0.05 0.05" rgba="0.1 0.75 0.2 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+      <geom name="green_bin_wall_left" type="box" pos="0 0.0475 0.691" size="0.05 0.0025 0.05" rgba="0.1 0.75 0.2 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+      <geom name="green_bin_wall_right" type="box" pos="0 -0.0475 0.691" size="0.05 0.0025 0.05" rgba="0.1 0.75 0.2 1" contype="1" conaffinity="1" friction="0.9 0.02 0.001" condim="3" />
+    </body>
+    <body name="red_cube_left" pos="0.25 0.3 0.741">
+      <freejoint name="red_cube_left_freejoint" />
+      <geom name="red_cube_left_geom" type="box" size="0.02 0.02 0.02" rgba="0.9 0.05 0.05 1" density="500" contype="1" conaffinity="1" friction="1.0 0.02 0.001" condim="4" />
+    </body>
+    <body name="red_cube_right" pos="0.25 -0.3 0.741">
+      <freejoint name="red_cube_right_freejoint" />
+      <geom name="red_cube_right_geom" type="box" size="0.02 0.02 0.02" rgba="0.9 0.05 0.05 1" density="500" contype="1" conaffinity="1" friction="1.0 0.02 0.001" condim="4" />
+    </body>
+    <body name="left_teleop_target" mocap="true" pos="0 0 1">
+      <site type="sphere" size="0.012" rgba="0.1 0.8 1 0.7" group="4" />
+      <site type="box" size="0.04 0.002 0.002" pos="0.04 0 0" rgba="1 0 0 0.8" group="4" />
+      <site type="box" size="0.002 0.04 0.002" pos="0 0.04 0" rgba="0 1 0 0.8" group="4" />
+      <site type="box" size="0.002 0.002 0.04" pos="0 0 0.04" rgba="0 0 1 0.8" group="4" />
+    </body>
+    <body name="right_teleop_target" mocap="true" pos="0 0 1">
+      <site type="sphere" size="0.012" rgba="1 0.7 0.1 0.7" group="4" />
+      <site type="box" size="0.04 0.002 0.002" pos="0.04 0 0" rgba="1 0 0 0.8" group="4" />
+      <site type="box" size="0.002 0.04 0.002" pos="0 0.04 0" rgba="0 1 0 0.8" group="4" />
+      <site type="box" size="0.002 0.002 0.04" pos="0 0 0.04" rgba="0 0 1 0.8" group="4" />
+    </body>
+  </worldbody>
+  <equality>
+    <connect name="left_omnipicker_narrow_four_bar" body1="left_omnipicker_hand_narrow_loop_Link" body2="left_omnipicker_hand_narrow3_Link" anchor="0.031600001 -0.009721825 -0.000028116" solref="0.002 1" solimp="0.99 0.999 0.0001" />
+    <connect name="left_omnipicker_wide_four_bar" body1="left_omnipicker_hand_wide_loop_Link" body2="left_omnipicker_hand_wide3_Link" anchor="0.031599999 0.009721807 0.000027969" solref="0.002 1" solimp="0.99 0.999 0.0001" />
+    <joint name="left_omnipicker_opposed_finger_drive" joint1="left_omnipicker_hand_wide1_joint" joint2="left_omnipicker_hand_narrow1_joint" polycoef="0 -1 0 0 0" solref="0.002 1" class="omnipicker_joint" solimp="0.99 0.999 0.0001" />
+    <connect name="right_omnipicker_narrow_four_bar" body1="right_omnipicker_hand_narrow_loop_Link" body2="right_omnipicker_hand_narrow3_Link" anchor="0.031600001 -0.009721825 -0.000028116" solref="0.002 1" solimp="0.99 0.999 0.0001" />
+    <connect name="right_omnipicker_wide_four_bar" body1="right_omnipicker_hand_wide_loop_Link" body2="right_omnipicker_hand_wide3_Link" anchor="0.031599999 0.009721807 0.000027969" solref="0.002 1" solimp="0.99 0.999 0.0001" />
+    <joint name="right_omnipicker_opposed_finger_drive" joint1="right_omnipicker_hand_wide1_joint" joint2="right_omnipicker_hand_narrow1_joint" polycoef="0 -1 0 0 0" solref="0.002 1" class="omnipicker_joint" solimp="0.99 0.999 0.0001" />
+  </equality>
+  <actuator>
+    <position name="waist_J1_position" joint="waist_J1" class="hbn90_052" forcerange="-52 52" ctrlrange="-3.1415 3.1415" />
+    <position name="waist_J2_position" joint="waist_J2" class="hbn110_087" forcerange="-87 87" ctrlrange="0 1.5708" />
+    <position name="Left_J1_position" joint="Left_J1" class="hbn80_031" forcerange="-31 31" ctrlrange="-3.1415 3.1415" />
+    <position name="Left_J2_position" joint="Left_J2" class="hbn80_031" forcerange="-31 31" ctrlrange="-0.349 2.0944" />
+    <position name="Left_J3_position" joint="Left_J3" class="hbn70_010" forcerange="-10 10" ctrlrange="-1.5708 1.5708" />
+    <position name="Left_J4_position" joint="Left_J4" class="hbn70_010" forcerange="-10 10" ctrlrange="0 2.0944" />
+    <position name="Left_J5_position" joint="Left_J5" class="hbn52_005" forcerange="-5 5" ctrlrange="-1.5708 1.5708" />
+    <position name="Left_J6_position" joint="Left_J6" class="hbn52_005" forcerange="-5 5" ctrlrange="-0.6982 0.6982" />
+    <position name="Left_J7_position" joint="Left_J7" class="hbn52_005" forcerange="-5 5" ctrlrange="-1.309 0.6982" />
+    <position name="Right_J1_position" joint="Right_J1" class="hbn80_031" forcerange="-31 31" ctrlrange="-3.1416 3.1416" />
+    <position name="Right_J2_position" joint="Right_J2" class="hbn80_031" forcerange="-31 31" ctrlrange="-0.349 2.0944" />
+    <position name="Right_J3_position" joint="Right_J3" class="hbn70_010" forcerange="-10 10" ctrlrange="-1.5708 1.5708" />
+    <position name="Right_J4_position" joint="Right_J4" class="hbn70_010" forcerange="-10 10" ctrlrange="0 2.0944" />
+    <position name="Right_J5_position" joint="Right_J5" class="hbn52_005" forcerange="-5 5" ctrlrange="-1.5708 1.5708" />
+    <position name="Right_j6_position" joint="Right_j6" class="hbn52_005" forcerange="-5 5" ctrlrange="-0.6982 0.6982" />
+    <position name="Right_J7_position" joint="Right_J7" class="hbn52_005" forcerange="-5 5" ctrlrange="-0.6982 1.309" />
+    <position name="head_j1_position" joint="head_j1" class="hbn52_005" forcerange="-5 5" ctrlrange="-3.1416 3.1416" />
+    <position name="Head_j2_position" joint="Head_j2" class="hbn52_005" forcerange="-5 5" ctrlrange="-0.7854 0.7854" />
+    <position name="left_omnipicker_gripper_opening" joint="left_omnipicker_hand_wide1_joint" gear="0.8333333333" kp="60" kv="4" ctrlrange="0 1" forcerange="-1.2 1.2" />
+    <position name="right_omnipicker_gripper_opening" joint="right_omnipicker_hand_wide1_joint" gear="0.8333333333" kp="60" kv="4" ctrlrange="0 1" forcerange="-1.2 1.2" />
+  </actuator>
+  <sensor>
+    <jointpos name="waist_J1_pos" joint="waist_J1" />
+    <jointvel name="waist_J1_vel" joint="waist_J1" />
+    <jointactuatorfrc name="waist_J1_actuator_torque" joint="waist_J1" />
+    <jointpos name="waist_J2_pos" joint="waist_J2" />
+    <jointvel name="waist_J2_vel" joint="waist_J2" />
+    <jointactuatorfrc name="waist_J2_actuator_torque" joint="waist_J2" />
+    <jointpos name="Left_J1_pos" joint="Left_J1" />
+    <jointvel name="Left_J1_vel" joint="Left_J1" />
+    <jointactuatorfrc name="Left_J1_actuator_torque" joint="Left_J1" />
+    <jointpos name="Left_J2_pos" joint="Left_J2" />
+    <jointvel name="Left_J2_vel" joint="Left_J2" />
+    <jointactuatorfrc name="Left_J2_actuator_torque" joint="Left_J2" />
+    <jointpos name="Left_J3_pos" joint="Left_J3" />
+    <jointvel name="Left_J3_vel" joint="Left_J3" />
+    <jointactuatorfrc name="Left_J3_actuator_torque" joint="Left_J3" />
+    <jointpos name="Left_J4_pos" joint="Left_J4" />
+    <jointvel name="Left_J4_vel" joint="Left_J4" />
+    <jointactuatorfrc name="Left_J4_actuator_torque" joint="Left_J4" />
+    <jointpos name="Left_J5_pos" joint="Left_J5" />
+    <jointvel name="Left_J5_vel" joint="Left_J5" />
+    <jointactuatorfrc name="Left_J5_actuator_torque" joint="Left_J5" />
+    <jointpos name="Left_J6_pos" joint="Left_J6" />
+    <jointvel name="Left_J6_vel" joint="Left_J6" />
+    <jointactuatorfrc name="Left_J6_actuator_torque" joint="Left_J6" />
+    <jointpos name="Left_J7_pos" joint="Left_J7" />
+    <jointvel name="Left_J7_vel" joint="Left_J7" />
+    <jointactuatorfrc name="Left_J7_actuator_torque" joint="Left_J7" />
+    <jointpos name="left_omnipicker_hand_narrow1_joint_pos" joint="left_omnipicker_hand_narrow1_joint" />
+    <jointvel name="left_omnipicker_hand_narrow1_joint_vel" joint="left_omnipicker_hand_narrow1_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_narrow1_joint_actuator_torque" joint="left_omnipicker_hand_narrow1_joint" />
+    <jointpos name="left_omnipicker_hand_narrow2_joint_pos" joint="left_omnipicker_hand_narrow2_joint" />
+    <jointvel name="left_omnipicker_hand_narrow2_joint_vel" joint="left_omnipicker_hand_narrow2_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_narrow2_joint_actuator_torque" joint="left_omnipicker_hand_narrow2_joint" />
+    <jointpos name="left_omnipicker_hand_narrow3_joint_pos" joint="left_omnipicker_hand_narrow3_joint" />
+    <jointvel name="left_omnipicker_hand_narrow3_joint_vel" joint="left_omnipicker_hand_narrow3_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_narrow3_joint_actuator_torque" joint="left_omnipicker_hand_narrow3_joint" />
+    <jointpos name="left_omnipicker_hand_narrow_loop_joint_pos" joint="left_omnipicker_hand_narrow_loop_joint" />
+    <jointvel name="left_omnipicker_hand_narrow_loop_joint_vel" joint="left_omnipicker_hand_narrow_loop_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_narrow_loop_joint_actuator_torque" joint="left_omnipicker_hand_narrow_loop_joint" />
+    <jointpos name="left_omnipicker_hand_wide1_joint_pos" joint="left_omnipicker_hand_wide1_joint" />
+    <jointvel name="left_omnipicker_hand_wide1_joint_vel" joint="left_omnipicker_hand_wide1_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_wide1_joint_actuator_torque" joint="left_omnipicker_hand_wide1_joint" />
+    <jointpos name="left_omnipicker_hand_wide2_joint_pos" joint="left_omnipicker_hand_wide2_joint" />
+    <jointvel name="left_omnipicker_hand_wide2_joint_vel" joint="left_omnipicker_hand_wide2_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_wide2_joint_actuator_torque" joint="left_omnipicker_hand_wide2_joint" />
+    <jointpos name="left_omnipicker_hand_wide3_joint_pos" joint="left_omnipicker_hand_wide3_joint" />
+    <jointvel name="left_omnipicker_hand_wide3_joint_vel" joint="left_omnipicker_hand_wide3_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_wide3_joint_actuator_torque" joint="left_omnipicker_hand_wide3_joint" />
+    <jointpos name="left_omnipicker_hand_wide_loop_joint_pos" joint="left_omnipicker_hand_wide_loop_joint" />
+    <jointvel name="left_omnipicker_hand_wide_loop_joint_vel" joint="left_omnipicker_hand_wide_loop_joint" />
+    <jointactuatorfrc name="left_omnipicker_hand_wide_loop_joint_actuator_torque" joint="left_omnipicker_hand_wide_loop_joint" />
+    <jointpos name="Right_J1_pos" joint="Right_J1" />
+    <jointvel name="Right_J1_vel" joint="Right_J1" />
+    <jointactuatorfrc name="Right_J1_actuator_torque" joint="Right_J1" />
+    <jointpos name="Right_J2_pos" joint="Right_J2" />
+    <jointvel name="Right_J2_vel" joint="Right_J2" />
+    <jointactuatorfrc name="Right_J2_actuator_torque" joint="Right_J2" />
+    <jointpos name="Right_J3_pos" joint="Right_J3" />
+    <jointvel name="Right_J3_vel" joint="Right_J3" />
+    <jointactuatorfrc name="Right_J3_actuator_torque" joint="Right_J3" />
+    <jointpos name="Right_J4_pos" joint="Right_J4" />
+    <jointvel name="Right_J4_vel" joint="Right_J4" />
+    <jointactuatorfrc name="Right_J4_actuator_torque" joint="Right_J4" />
+    <jointpos name="Right_J5_pos" joint="Right_J5" />
+    <jointvel name="Right_J5_vel" joint="Right_J5" />
+    <jointactuatorfrc name="Right_J5_actuator_torque" joint="Right_J5" />
+    <jointpos name="Right_j6_pos" joint="Right_j6" />
+    <jointvel name="Right_j6_vel" joint="Right_j6" />
+    <jointactuatorfrc name="Right_j6_actuator_torque" joint="Right_j6" />
+    <jointpos name="Right_J7_pos" joint="Right_J7" />
+    <jointvel name="Right_J7_vel" joint="Right_J7" />
+    <jointactuatorfrc name="Right_J7_actuator_torque" joint="Right_J7" />
+    <jointpos name="right_omnipicker_hand_narrow1_joint_pos" joint="right_omnipicker_hand_narrow1_joint" />
+    <jointvel name="right_omnipicker_hand_narrow1_joint_vel" joint="right_omnipicker_hand_narrow1_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_narrow1_joint_actuator_torque" joint="right_omnipicker_hand_narrow1_joint" />
+    <jointpos name="right_omnipicker_hand_narrow2_joint_pos" joint="right_omnipicker_hand_narrow2_joint" />
+    <jointvel name="right_omnipicker_hand_narrow2_joint_vel" joint="right_omnipicker_hand_narrow2_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_narrow2_joint_actuator_torque" joint="right_omnipicker_hand_narrow2_joint" />
+    <jointpos name="right_omnipicker_hand_narrow3_joint_pos" joint="right_omnipicker_hand_narrow3_joint" />
+    <jointvel name="right_omnipicker_hand_narrow3_joint_vel" joint="right_omnipicker_hand_narrow3_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_narrow3_joint_actuator_torque" joint="right_omnipicker_hand_narrow3_joint" />
+    <jointpos name="right_omnipicker_hand_narrow_loop_joint_pos" joint="right_omnipicker_hand_narrow_loop_joint" />
+    <jointvel name="right_omnipicker_hand_narrow_loop_joint_vel" joint="right_omnipicker_hand_narrow_loop_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_narrow_loop_joint_actuator_torque" joint="right_omnipicker_hand_narrow_loop_joint" />
+    <jointpos name="right_omnipicker_hand_wide1_joint_pos" joint="right_omnipicker_hand_wide1_joint" />
+    <jointvel name="right_omnipicker_hand_wide1_joint_vel" joint="right_omnipicker_hand_wide1_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_wide1_joint_actuator_torque" joint="right_omnipicker_hand_wide1_joint" />
+    <jointpos name="right_omnipicker_hand_wide2_joint_pos" joint="right_omnipicker_hand_wide2_joint" />
+    <jointvel name="right_omnipicker_hand_wide2_joint_vel" joint="right_omnipicker_hand_wide2_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_wide2_joint_actuator_torque" joint="right_omnipicker_hand_wide2_joint" />
+    <jointpos name="right_omnipicker_hand_wide3_joint_pos" joint="right_omnipicker_hand_wide3_joint" />
+    <jointvel name="right_omnipicker_hand_wide3_joint_vel" joint="right_omnipicker_hand_wide3_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_wide3_joint_actuator_torque" joint="right_omnipicker_hand_wide3_joint" />
+    <jointpos name="right_omnipicker_hand_wide_loop_joint_pos" joint="right_omnipicker_hand_wide_loop_joint" />
+    <jointvel name="right_omnipicker_hand_wide_loop_joint_vel" joint="right_omnipicker_hand_wide_loop_joint" />
+    <jointactuatorfrc name="right_omnipicker_hand_wide_loop_joint_actuator_torque" joint="right_omnipicker_hand_wide_loop_joint" />
+    <jointpos name="head_j1_pos" joint="head_j1" />
+    <jointvel name="head_j1_vel" joint="head_j1" />
+    <jointactuatorfrc name="head_j1_actuator_torque" joint="head_j1" />
+    <jointpos name="Head_j2_pos" joint="Head_j2" />
+    <jointvel name="Head_j2_vel" joint="Head_j2" />
+    <jointactuatorfrc name="Head_j2_actuator_torque" joint="Head_j2" />
+    <actuatorfrc name="waist_J1_position_torque" actuator="waist_J1_position" />
+    <actuatorfrc name="waist_J2_position_torque" actuator="waist_J2_position" />
+    <actuatorfrc name="Left_J1_position_torque" actuator="Left_J1_position" />
+    <actuatorfrc name="Left_J2_position_torque" actuator="Left_J2_position" />
+    <actuatorfrc name="Left_J3_position_torque" actuator="Left_J3_position" />
+    <actuatorfrc name="Left_J4_position_torque" actuator="Left_J4_position" />
+    <actuatorfrc name="Left_J5_position_torque" actuator="Left_J5_position" />
+    <actuatorfrc name="Left_J6_position_torque" actuator="Left_J6_position" />
+    <actuatorfrc name="Left_J7_position_torque" actuator="Left_J7_position" />
+    <actuatorfrc name="Right_J1_position_torque" actuator="Right_J1_position" />
+    <actuatorfrc name="Right_J2_position_torque" actuator="Right_J2_position" />
+    <actuatorfrc name="Right_J3_position_torque" actuator="Right_J3_position" />
+    <actuatorfrc name="Right_J4_position_torque" actuator="Right_J4_position" />
+    <actuatorfrc name="Right_J5_position_torque" actuator="Right_J5_position" />
+    <actuatorfrc name="Right_j6_position_torque" actuator="Right_j6_position" />
+    <actuatorfrc name="Right_J7_position_torque" actuator="Right_J7_position" />
+    <actuatorfrc name="head_j1_position_torque" actuator="head_j1_position" />
+    <actuatorfrc name="Head_j2_position_torque" actuator="Head_j2_position" />
+    <actuatorfrc name="left_omnipicker_gripper_opening_torque" actuator="left_omnipicker_gripper_opening" />
+    <actuatorfrc name="right_omnipicker_gripper_opening_torque" actuator="right_omnipicker_gripper_opening" />
+    <framepos name="left_omnipicker_tcp_pos" objtype="site" objname="left_omnipicker_tcp" />
+    <framequat name="left_omnipicker_tcp_quat" objtype="site" objname="left_omnipicker_tcp" />
+    <force name="left_omnipicker_wrist_ft_site_force" site="left_omnipicker_wrist_ft_site" />
+    <torque name="left_omnipicker_wrist_ft_site_torque" site="left_omnipicker_wrist_ft_site" />
+    <touch name="left_omnipicker_hand_narrow3_Link_touch" site="left_omnipicker_hand_narrow3_Link_touch_site" />
+    <touch name="left_omnipicker_hand_narrow2_Link_touch" site="left_omnipicker_hand_narrow2_Link_touch_site" />
+    <touch name="left_omnipicker_hand_narrow1_Link_touch" site="left_omnipicker_hand_narrow1_Link_touch_site" />
+    <touch name="left_omnipicker_hand_wide3_Link_touch" site="left_omnipicker_hand_wide3_Link_touch_site" />
+    <touch name="left_omnipicker_hand_wide2_Link_touch" site="left_omnipicker_hand_wide2_Link_touch_site" />
+    <touch name="left_omnipicker_hand_wide1_Link_touch" site="left_omnipicker_hand_wide1_Link_touch_site" />
+    <framepos name="right_omnipicker_tcp_pos" objtype="site" objname="right_omnipicker_tcp" />
+    <framequat name="right_omnipicker_tcp_quat" objtype="site" objname="right_omnipicker_tcp" />
+    <force name="right_omnipicker_wrist_ft_site_force" site="right_omnipicker_wrist_ft_site" />
+    <torque name="right_omnipicker_wrist_ft_site_torque" site="right_omnipicker_wrist_ft_site" />
+    <touch name="right_omnipicker_hand_narrow3_Link_touch" site="right_omnipicker_hand_narrow3_Link_touch_site" />
+    <touch name="right_omnipicker_hand_narrow2_Link_touch" site="right_omnipicker_hand_narrow2_Link_touch_site" />
+    <touch name="right_omnipicker_hand_narrow1_Link_touch" site="right_omnipicker_hand_narrow1_Link_touch_site" />
+    <touch name="right_omnipicker_hand_wide3_Link_touch" site="right_omnipicker_hand_wide3_Link_touch_site" />
+    <touch name="right_omnipicker_hand_wide2_Link_touch" site="right_omnipicker_hand_wide2_Link_touch_site" />
+    <touch name="right_omnipicker_hand_wide1_Link_touch" site="right_omnipicker_hand_wide1_Link_touch_site" />
+  </sensor>
+  <keyframe>
+    <key name="home" qpos="0 0 0 0 0 1.5708 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5708 0 0 0 0 0 0 0 0 0 0 0 0 0.53 0.65 0.3 0.741 1 0 0 0 0.65 -0.3 0.741 1 0 0 0" ctrl="0 0 0 0 0 1.5708 0 0 0 0 0 0 1.5708 0 0 0 0 0.53 0 0" />
+  </keyframe>
+</mujoco>

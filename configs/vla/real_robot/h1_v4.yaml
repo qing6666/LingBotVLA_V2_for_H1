@@ -1,0 +1,165 @@
+# =====================================================================
+# H1 v4 数据(头部完全固定版)后训练配置 —— 基于 h1.yaml(v3 同款)修改
+# ---------------------------------------------------------------------
+# 数据画像(v4 裁剪副本,2026-08-27 全量 QC 通过):
+#   302 episodes / 460499 帧 / fps30 / 单任务 / episode 均长 25.4s
+#   由 h1_build_pick_v4(302 条/474661 帧)裁开头静止前缀 3.0% 生成
+#   ★ 头部两维恒定(yaw=0, pitch=0.53):norm 统计已用 fix_v4_head_std.py
+#     打 0.02 std 地板(否则 action yaw 0/0=NaN 直接报废训练)
+#   ★ 风格协议:右爪先闭合 302/302(100%),R 闭合时刻 IQR [11.2,13.6]s,
+#     终末慢速 —— 针对 v3 终末缩水根因的数据侧对策
+#
+# 与 v3 配置(h1.yaml)的差异只有 6 处(其余逐字未动):
+#   ① train_path → v4_trimmed        ② norm_stats_file → h1_v4.json
+#   ③ output_dir → output/h1_v4      ④ max_steps 20000 → 40000
+#   ⑤ save_steps 2500 → 4000         ⑥ 新增 action_loss_weights(per-dim 加权)
+# 改动依据见项目根《V3踩坑记录.md》。
+# =====================================================================
+
+# =====================================================================
+# 一、model 段 —— 用什么模型、怎么加载预训练权重(与 v3 完全一致)
+# =====================================================================
+model:
+  model_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/lingbot-vla-v2-6b
+  tokenizer_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/Qwen3-VL-4B-Instruct
+  post_training: true
+  adanorm_time: true
+  config_key: LingbotVLAV2Config
+  moe_implementation: fused
+
+# =====================================================================
+# 二、data 段 —— 喂什么数据、怎么变成模型输入
+# =====================================================================
+data:
+  datasets_type: vla
+  data_name: h1
+  train_path: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v4_trimmed
+  robot_config_root: configs/robot_configs
+
+  # 55 维统一动作空间的槽位声明(与预训练权重绑定,不可改):
+  # 拼接顺序即本顺序 → 实际下标:[0:14]双臂(L 0-6, R 7-13) [14:28]末端(未映射)
+  #   [28:30]夹爪(L28, R29) [30:34]腰(未映射) [34:36]头 [36:39]底盘 [39:51]手
+  #   [51:55]尾部补零 —— action_loss_weights 按这套下标写
+  joints:
+    - arm.position: 14
+    - end.position: 14
+    - effector.position: 2
+    - waist.position: 4
+    - head.position: 2
+    - base.position: 3
+    - hand.position: 12
+
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+
+  prompt_type: global
+
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+    - waist.position: meanstd
+    - head.position: meanstd
+    - base.position: meanstd
+    - hand.position: meanstd
+
+  # ★ v4 专用统计:头部 std 已打 0.02 地板(fix_v4_head_std.py)。
+  #   绝不能沿用 h1_v3.json —— v3 头部在追踪(std 0.05/0.08),v4 恒定。
+  norm_stats_file: assets/norm_stats/h1_v4.json
+
+  num_workers: 8
+  use_future_image: false
+
+# =====================================================================
+# 三、train 段 —— 怎么训
+# =====================================================================
+train:
+  output_dir: output/h1_v4
+  moe_monitor_interval: 1000
+
+  enable_gradient_checkpointing: true
+  precompute_grid_thw: true
+  vlm_causal: true
+  vlm_fsdp: true
+  attention_implementation: flex_cached
+
+  # ---------- MoE 动作专家结构(与预训练权重绑定,不可改!) ----------
+  use_moe: true
+  token_moe_layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]
+  token_num_experts: 32
+  token_top_k: 4
+  token_moe_intermediate_size: 512
+  token_shared_intermediate_size: 704
+  bias_update_speed: 0
+  sequence_wise_mode: "per_sequence"
+  sequence_wise_loss_coeff: 1e-3
+  router_z_loss_coeff: 1e-4
+  router_activation: "sigmoid"
+  routed_scaling_factor: 4.0
+  use_shared_expert_gate: false
+  use_moe_expert_lr: true
+
+  # ---------- 并行策略(单卡配置) ----------
+  data_parallel_mode: fsdp2
+  enable_full_shard: false
+  module_fsdp_enable: true
+  ulysses_parallel_size: 1
+
+  # ---------- 杂项开关 ----------
+  use_compile: false
+  use_wandb: false
+  rmpad: false
+  rmpad_with_pos_ids: false
+  freeze_vision_encoder: false
+
+  # ---------- 输入维度 ----------
+  tokenizer_max_length: 72
+  action_dim: 55
+  max_action_dim: 55
+  max_state_dim: 55
+
+  # ---------- 优化器(与 v3 一致) ----------
+  optimizer: muon
+  train_expert_only: true
+  lr: 1.0e-4
+  lr_decay_style: constant
+  loss_type: L1_fm
+
+  # ---------- ★ v4 新增:统一动作空间(55维)逐维损失权重 ----------
+  # 下标布局见 data.joints 注释。依据 v3 开环诊断实测偏置:
+  #   右臂 7 维 [7:14] ×2.0 —— R_J1 +0.19 / R_J4 −0.16 集中在右臂
+  #   双夹爪 [28:30] ×2.0  —— Grip.R −0.26 偏置 + 闭合时机是成败关键
+  #   头部 [34:36] ×0.0    —— v4 恒定维,loss 只剩噪声底,清零最干净
+  #   其维 1.0;尾部补零 [51:55] 会被 joint_mask 排除,权重无实际作用
+  # (不写此字段 = None = 与历史行为逐比特一致)
+  action_loss_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0,
+                        0.0, 0.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        1.0, 1.0, 1.0, 1.0]
+
+  # ---------- 批次与时长 ----------
+  chunk_size: 50
+  num_train_epochs: 30              # 1 epoch ≈ 11.5 万步(460499帧/4),上限只作保险
+  micro_batch_size: 1
+  gradient_accumulation_steps: 4
+  global_batch_size: 4
+  max_steps: 40000                  # v3 失败根因是数据不是步数;v4 数据 3.7×,
+                                    #   40k 步×batch4 = 16 万样本(v3 的 2 倍,≈0.35 epoch)
+                                    #   ≈39h(5090 实测 3.5s/步);不够 enable_resume 续
+
+  # ---------- 存档 ----------
+  ckpt_manager: dcp
+  save_steps: 4000                  # 磁盘约束:每档≈26.6G,10 档≈266G(余 419G);
+                                    #   2500 间隔×16 档=426G 会爆盘
+  save_epochs: 29000
+  enable_resume: true
+
+  # ---------- 精度(32GB 单卡,与 v3 一致) ----------
+  enable_mixed_precision: false
+  enable_fp32: false

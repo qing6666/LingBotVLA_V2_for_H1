@@ -1,0 +1,27 @@
+# SO101 norm 计算专用配置(compute_norm_stats 用)
+# ★ 关键:无 model 段(compute_norm_stats 的 Arguments 只有 data+train,不认 model)
+# data_name / train_path / norm_path 由命令行(--data.xxx)传入
+data:
+  datasets_type: vla
+  robot_config_root: configs/robot_configs
+  joints:
+    - arm.position: 14
+    - end.position: 14
+    - effector.position: 2
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+  prompt_type: global
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+  num_workers: 1   # ★ 最小(系统 RAM 紧张)
+  use_future_image: false
+
+train:
+  chunk_size: 50
+  micro_batch_size: 1
+  output_dir: tmp_norm   # compute_norm_stats 要求(required);算 norm 不存模型,给临时目录即可
+  max_steps: 1           # TrainingArguments 要求(num_train_epochs/max_steps 至少一个);算 norm 不真训练

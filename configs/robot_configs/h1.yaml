@@ -1,0 +1,94 @@
+# =====================================================================
+# H1 人形机器人 robot config(h1_omnipicker 仿真数据)
+# ---------------------------------------------------------------------
+# 数据:H1_simulation_model/H1_build/data/h1_build_pick_v2
+#       (LeRobot v3.0, 101 episodes / 78108 frames / fps30 / av1 视频)
+# 20维 state/action 编排(见 meta/info.json 的 features.names):
+#   腰部 [0:2)    waist_J1, waist_J2
+#   左臂 [2:9)    Left_J1..J7      (7自由度)
+#   右臂 [9:16)   Right_J1..J7     (7自由度)
+#   头部 [16:18)  head_j1, Head_j2
+#   夹爪 [18:20)  left/right_gripper.open
+# 相机:head_rgb(头部第三视角), left_wrist_rgb, right_wrist_rgb
+#
+# ★ 统一特征空间映射(实际映射 18 维,与 55 维统一空间的对应槽位严丝合缝):
+#   arm.position 14 = 左臂7 + 右臂7   (统一空间 arm 槽位恰好 14)
+#   head.position 2  (统一空间 2,正好)
+#   effector.position 2 (统一空间 2,正好)
+#
+# ★★ 数据驱动的取舍(对全 78108 帧逐维统计的结果):
+#   - 腰部 waist[0:2] 全程静止(range ±0.004, std≈2e-4, action std=0)
+#     → 不映射。meanstd 归一化除以 ~2e-4 的 std 会把数值噪声放大成 ±21 的
+#       畸形输入(正常特征归一化后在 ±3 内),纯害无益。
+#       若以后仿真/真机里腰部真的动了,再加回这段映射并重算 norm。
+#   - 头部 head[16:18] 确实在动(range -0.46~0.86 rad, std 0.07/0.16)
+#     → 保留(仿真里头部在追踪目标)。
+# =====================================================================
+
+states:
+  # 臂关节:左臂7 + 右臂7 = 14 维(正好占满统一空间 arm 槽位)
+  - observation.state.arm.position:
+      origin_keys:
+        - observation.state:       # 左臂 [2:9)
+            start: 2
+            end: 9
+        - observation.state:       # 右臂 [9:16)
+            start: 9
+            end: 16
+
+  # 头部关节 2 维
+  - observation.state.head.position:
+      origin_keys:
+        - observation.state:       # head_j1/Head_j2 [16:18)
+            start: 16
+            end: 18
+
+  # 夹爪:左 + 右 = 2 维
+  - observation.state.effector.position:
+      origin_keys:
+        - observation.state:       # left_gripper.open [18:19)
+            start: 18
+            end: 19
+        - observation.state:       # right_gripper.open [19:20)
+            start: 19
+            end: 20
+
+actions:
+  # 仿真数据:学绝对动作(subtract_state: False,同 RoboTwin 约定)
+  # (waist 不映射,原因见文件头部注释)
+  - action.arm.position:
+      origin_keys:
+        - action:                  # 左臂 [2:9)
+            start: 2
+            end: 9
+        - action:                  # 右臂 [9:16)
+            start: 9
+            end: 16
+      subtract_state: False        # 仿真用 False;若迁移到真机 H1 建议改 True
+
+  - action.head.position:
+      origin_keys:
+        - action:                  # 头部 [16:18)
+            start: 16
+            end: 18
+      subtract_state: False
+
+  - action.effector.position:
+      origin_keys:
+        - action:                  # 左夹爪 [18:19)
+            start: 18
+            end: 19
+        - action:                  # 右夹爪 [19:20)
+            start: 19
+            end: 20
+      subtract_state: False        # 夹爪始终学绝对开合量
+
+images:
+  - observation.images.camera_top:            # 头部相机(第三视角)
+      origin_keys: observation.images.head_rgb
+  - observation.images.camera_wrist_left:     # 左腕相机
+      origin_keys: observation.images.left_wrist_rgb
+  - observation.images.camera_wrist_right:    # 右腕相机
+      origin_keys: observation.images.right_wrist_rgb
+
+norm_stats: assets/norm_stats/h1.json

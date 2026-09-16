@@ -1,0 +1,157 @@
+# =====================================================================
+# H1 v4_full(方案 B):官方全模型配方,从官方底座冷启动
+# ---------------------------------------------------------------------
+# 动机(2026-09-02 提出,2026-09-04 w3 终审定案后转正):官方 real_robot.yaml/
+#   SO101 复现都是全模型微调(train_expert_only 默认 false,VLM 一起训);
+#   我们因 32GB 单卡被迫只训 ~1.7B 动作专家。w3 探针终审:152k 步
+#   (60.8 万样本=外部用量 15 倍)发起幅值仍钉在门的 40-60%,L_J6 超前
+#   五档纹丝不动 → 专家-only 配方封顶,活口假设只剩"冻 VLM 特征不适配
+#   本域"。本配置 = 补上视觉适配这唯一缺口。
+#
+# ★ 冷启动(2026-09-04 定):model_path = 官方底座 models/lingbot-vla-v2-6b。
+#   与外部成功复现(50 回合/4×A100/1 万步)路径完全一致,我们的数据是其
+#   6 倍 —— 最干净对照。备选热启动档 w3@152000/hf_ckpt(唯一留存,12G)
+#   未用:专家可能已把"向均值收缩"行为练瓷实,有继承风险。
+#
+# ★ 前置补丁(2026-09-04 已打,共 3 个文件):torch_parallelize.py 放行单卡
+#   offload;train_lingbotvla.py 单卡梯度裁剪;muon.py 集合通信单卡恒等化 +
+#   Newton-Schulz 借 GPU 算(CPU 上 10-20 分钟/步 → GPU 2 秒)。
+#   备份/diff/三条 cp 复原命令:mjq_lingbotvla_v2/B_patch/(README.md)。
+#
+# 与 h1_v4_w3.yaml 的差异(其余逐字未动,数据/窗口/归一化/动作权重全同):
+#   ① model.model_path → 官方底座(冷启动)
+#   ② train.output_dir → output/h1_v4_full
+#   ③ train_expert_only → false(★核心:解冻整个 VLM)
+#   ④ lr → 5.0e-5 + vit_lr 1.0e-6(全模型要压低;原 1e-4 是专家-only 用量)
+#   ⑤ enable_fsdp_offload → true(权重/优化器驻 CPU 按需上卡,32G 装下
+#     5.7B 可训练参数的唯一办法)⑥ enable_full_shard → true(offload 需要
+#     前向后释放 unsharded 参数,否则 11.5G 权重常驻 GPU)
+#   ⑦ gradient_accumulation_steps → 1,global_batch_size → 1(保守起见,
+#     offload 下先用 batch 1 试跑;若速度可接受再测累积 4)
+#   ⑧ max_steps 20000 / save_steps 10000(两档 ≈54G;磁盘 600G 充裕)
+# =====================================================================
+
+model:
+  model_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/lingbot-vla-v2-6b   # ★ 冷启动:官方底座
+  tokenizer_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/Qwen3-VL-4B-Instruct
+  post_training: true
+  adanorm_time: true
+  config_key: LingbotVLAV2Config
+  moe_implementation: fused
+
+data:
+  datasets_type: vla
+  data_name: h1
+  train_path: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v4_trimmed
+  robot_config_root: configs/robot_configs
+  joints:
+    - arm.position: 14
+    - end.position: 14
+    - effector.position: 2
+    - waist.position: 4
+    - head.position: 2
+    - base.position: 3
+    - hand.position: 12
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+  prompt_type: global
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+    - waist.position: meanstd
+    - head.position: meanstd
+    - base.position: meanstd
+    - hand.position: meanstd
+  norm_stats_file: assets/norm_stats/h1_v4.json
+  phase_window_file: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v4_trimmed.phase_windows.v2.json
+  num_workers: 8
+  use_future_image: false
+
+train:
+  output_dir: output/h1_v4_full
+  moe_monitor_interval: 1000
+
+  enable_gradient_checkpointing: true
+  precompute_grid_thw: true
+  vlm_causal: true
+  vlm_fsdp: true
+  attention_implementation: flex_cached
+
+  # ---------- MoE 动作专家结构(与预训练权重绑定,不可改!) ----------
+  use_moe: true
+  token_moe_layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]
+  token_num_experts: 32
+  token_top_k: 4
+  token_moe_intermediate_size: 512
+  token_shared_intermediate_size: 704
+  bias_update_speed: 0
+  sequence_wise_mode: "per_sequence"
+  sequence_wise_loss_coeff: 1e-3
+  router_z_loss_coeff: 1e-4
+  router_activation: "sigmoid"
+  routed_scaling_factor: 4.0
+  use_shared_expert_gate: false
+  use_moe_expert_lr: true
+
+  # ---------- 并行策略(单卡 + CPU offload) ----------
+  data_parallel_mode: fsdp2
+  enable_full_shard: true            # ★ offload 需要前向后释放 unsharded 参数
+  module_fsdp_enable: true
+  ulysses_parallel_size: 1
+  enable_fsdp_offload: true          # ★ 权重/优化器驻 CPU 按需上卡(需 B_patch)
+
+  # ---------- 杂项开关 ----------
+  use_compile: false
+  use_wandb: false
+  rmpad: false
+  rmpad_with_pos_ids: false
+  freeze_vision_encoder: false       # 视觉塔也解冻,由 vit_lr 单独给小学习率
+
+  # ---------- 输入维度 ----------
+  tokenizer_max_length: 72
+  action_dim: 55
+  max_action_dim: 55
+  max_state_dim: 55
+
+  # ---------- 优化器(★全模型配方) ----------
+  optimizer: muon
+  train_expert_only: false           # ★ 解冻整个 VLM(核心实验变量)
+  lr: 5.0e-5                         # 官方真机配方(原 1e-4 为仿真配方)
+  vit_lr: 1.0e-6                     # 视觉塔独立小学习率(官方默认值)
+  lr_decay_style: constant
+  loss_type: L1_fm
+
+  # ---------- v4 的统一动作空间(55维)逐维损失权重(与 v4_w2 完全一致) ----------
+  action_loss_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0,
+                        0.0, 0.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        1.0, 1.0, 1.0, 1.0]
+
+  # ---------- 批次与时长(offload 与累积互斥 → batch 1) ----------
+  chunk_size: 50
+  num_train_epochs: 30
+  micro_batch_size: 1
+  gradient_accumulation_steps: 1
+  global_batch_size: 1
+  max_steps: 20000                   # 两档(10k/20k)≈54G;磁盘 600G 充裕(2026-09-16 已复原;
+                                     #   60k 续训改动见 B方案5090训练说明.md)
+
+  # ---------- 冷启动:model_path 已指官方底座;中断重启自动接本目录最新档 ----------
+  resume_dataloader_state: false
+  enable_resume: true                # 试跑务必用 --train.output_dir=独立目录,别污染正跑
+
+  # ---------- 存档 ----------
+  ckpt_manager: dcp
+  save_steps: 10000                  # 两档(10k/20k)≈54G;磁盘 600G 充裕
+  save_epochs: 29000
+
+  # ---------- 精度(与 v4 系一致:纯 bf16) ----------
+  enable_mixed_precision: false
+  enable_fp32: false

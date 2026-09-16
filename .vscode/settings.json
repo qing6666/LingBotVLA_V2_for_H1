@@ -1,0 +1,6 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python.defaultInterpreterPath": "/home/mjq/miniconda3/envs/lingbotv2/bin/python",
+    "cmake.sourceDirectory": "/home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_1"
+}

@@ -1,0 +1,34 @@
+# H1 v4 norm 计算专用配置(compute_norm_stats 用)
+# ★ 与 h1_norm.yaml(v2/v3 用)的唯一差别:train_path 指向 v4 裁剪副本(命令行传入)
+# ★ v4 数据特征:头部两维恒定(yaw=0, pitch=0.53;action yaw std 精确=0)——
+#   算出的头部 std 会是 0/≈1e-3,必须用 mjq_lingbotvla_v2/fix_v4_head_std.py
+#   打 0.02 下限后再喂训练,否则 meanstd 归一化 0/0=NaN 直接报废训练。
+# ★ 无 model 段(compute_norm_stats 的 Arguments 只有 data+train,不认 model)
+data:
+  datasets_type: vla
+  robot_config_root: configs/robot_configs
+  joints:
+    - arm.position: 14        # H1: 左臂7+右臂7 = 14,正好占满
+    - end.position: 14        # 保留:对齐预训练模型头维度(robot config 未映射,不生效)
+    - effector.position: 2    # H1: 左右夹爪 2 维
+    - head.position: 2        # H1: 头部 2 维(v4 已完全固定;std 需打地板,见文件头)
+    - waist.position: 4       # 声明保留(对齐头维度);robot config 不映射 —— v4 腰部实测仍静止(std 2e-4)
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+  prompt_type: global
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+    - head.position: meanstd
+    - waist.position: meanstd
+  num_workers: 4
+  use_future_image: false
+
+train:
+  chunk_size: 50
+  micro_batch_size: 1
+  output_dir: tmp_norm   # compute_norm_stats 要求(required);算 norm 不存模型,给临时目录即可
+  max_steps: 1           # TrainingArguments 要求;算 norm 不真训练

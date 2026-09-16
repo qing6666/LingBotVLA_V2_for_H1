@@ -1,0 +1,119 @@
+<mujoco model="H1">
+  <compiler angle="radian"/>
+
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="../meshes/base_link.STL"/>
+    <mesh name="waist_Link_j1" content_type="model/stl" file="../meshes/waist_Link_j1.STL"/>
+    <mesh name="waist_link_J2" content_type="model/stl" file="../meshes/waist_link_J2.STL"/>
+    <mesh name="left_link_J1" content_type="model/stl" file="../meshes/left_link_J1.STL"/>
+    <mesh name="Left_Link_J2" content_type="model/stl" file="../meshes/Left_Link_J2.STL"/>
+    <mesh name="Left_Link_J3" content_type="model/stl" file="../meshes/Left_Link_J3.STL"/>
+    <mesh name="left_Link_j4" content_type="model/stl" file="../meshes/left_Link_j4.STL"/>
+    <mesh name="Left_Link_J5" content_type="model/stl" file="../meshes/Left_Link_J5.STL"/>
+    <mesh name="Left_Link_J6" content_type="model/stl" file="../meshes/Left_Link_J6.STL"/>
+    <mesh name="Left_Link_J7" content_type="model/stl" file="../meshes/Left_Link_J7.STL"/>
+    <mesh name="Right_Link_J1" content_type="model/stl" file="../meshes/Right_Link_J1.STL"/>
+    <mesh name="Right_Link_J2" content_type="model/stl" file="../meshes/Right_Link_J2.STL"/>
+    <mesh name="Right_Link_J3" content_type="model/stl" file="../meshes/Right_Link_J3.STL"/>
+    <mesh name="Right_Link_J4" content_type="model/stl" file="../meshes/Right_Link_J4.STL"/>
+    <mesh name="Right_Link_J5" content_type="model/stl" file="../meshes/Right_Link_J5.STL"/>
+    <mesh name="Right_Link_J6" content_type="model/stl" file="../meshes/Right_Link_J6.STL"/>
+    <mesh name="Right_Link_J7" content_type="model/stl" file="../meshes/Right_Link_J7.STL"/>
+    <mesh name="head_j1" content_type="model/stl" file="../meshes/head_j1.STL"/>
+    <mesh name="Head_Link_j2" content_type="model/stl" file="../meshes/Head_Link_j2.STL"/>
+  </asset>
+
+  <worldbody>
+    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="base_link"/>
+    <body name="waist_Link_j1" pos="0 0 0.641">
+      <inertial pos="-7.2904e-06 -0.0083807 0.096361" quat="0.986403 0.164342 -0.000133284 0.000193956" mass="1.677" diaginertia="0.0079723 0.00674706 0.00546314"/>
+      <joint name="waist_J1" pos="0 0 0" axis="0 0 -1" range="-3.1415 3.1415" actuatorfrcrange="-52 52" damping="1" frictionloss="0.1"/>
+      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="waist_Link_j1"/>
+      <body name="waist_link_J2" pos="0 0 0.16">
+        <inertial pos="-3.6907e-07 -0.0043997 0.20706" quat="0.707111 -0.00014751 0.000150335 0.707103" mass="2.9129" diaginertia="0.014161 0.013533 0.006488"/>
+        <joint name="waist_J2" pos="0 0 0" axis="0 1 0" range="0 1.5708" actuatorfrcrange="-87 87" damping="1.2" frictionloss="0.1"/>
+        <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="waist_link_J2"/>
+        <body name="left_link_J1" pos="0 0.1505 0.34">
+          <inertial pos="-0.0043288 0.069057 -4.5569e-05" quat="0.707284 0.706805 0.0103445 0.00838972" mass="0.4143" diaginertia="0.000945777 0.000786419 0.000623874"/>
+          <joint name="Left_J1" pos="0 0 0" axis="0 1 0" range="-3.1415 3.1415" actuatorfrcrange="-31 31" damping="0.6" frictionloss="0.1"/>
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="left_link_J1"/>
+          <body name="Left_Link_J2" pos="0 0.075 0">
+            <inertial pos="-0.0036277 2.762e-08 -0.039885" quat="0.698477 -0.110162 -0.110189 0.698465" mass="0.52341" diaginertia="0.001254 0.00108389 0.000962597"/>
+            <joint name="Left_J2" pos="0 0 0" axis="1 0 0" range="-0.349 2.0944" actuatorfrcrange="-31 31" damping="0.6" frictionloss="0.1"/>
+            <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J2"/>
+            <body name="Left_Link_J3" pos="0 0 -0.093">
+              <inertial pos="0.0056911 -0.0019239 -0.13085" quat="0.704019 -0.0420963 -0.0233801 0.708547" mass="0.57095" diaginertia="0.00332533 0.00329003 0.000789789"/>
+              <joint name="Left_J3" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-10 10" damping="0.3" frictionloss="0.1"/>
+              <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Left_Link_J3"/>
+              <body name="left_Link_j4" pos="0.012 0 -0.2065">
+                <inertial pos="-0.00025246 -0.0039161 -0.041415" quat="0.967336 0.253359 0.00785473 -0.00304025" mass="0.44416" diaginertia="0.000952201 0.00073989 0.000628199"/>
+                <joint name="Left_J4" pos="0 0 0" axis="0 -1 0" range="0 2.0944" actuatorfrcrange="-10 10" damping="0.3" frictionloss="0.1"/>
+                <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="left_Link_j4"/>
+                <body name="Left_Link_J5" pos="0 0 -0.0948">
+                  <inertial pos="-3.7549e-06 0.0015048 -0.11283" quat="0.999891 0.0147562 6.35803e-05 0.00107648" mass="0.4197" diaginertia="0.0021747 0.00216223 0.000401226"/>
+                  <joint name="Left_J5" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                  <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J5"/>
+                  <body name="Left_Link_J6" pos="0 0 -0.2049">
+                    <inertial pos="-0.0010919 0.0066883 -0.030929" quat="0.989093 -0.139522 0.0469063 -0.00537134" mass="0.16918" diaginertia="0.000177041 0.000157281 0.000146578"/>
+                    <joint name="Left_J6" pos="0 0 0" axis="0 1 0" range="-0.6982 0.6982" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Left_Link_J6"/>
+                    <body name="Left_Link_J7" pos="0 0 -0.064">
+                      <inertial pos="-0.0023003 4.8562e-06 -0.019732" quat="0.488364 0.51153 0.512469 0.487046" mass="0.16822" diaginertia="0.00019906 0.000198256 0.000110834"/>
+                      <joint name="Left_J7" pos="0 0 0" axis="1 0 0" range="-1.309 0.6982" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Left_Link_J7"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="Right_Link_J1" pos="0 -0.1505 0.34">
+          <inertial pos="0.0043288 -0.069057 -4.5569e-05" quat="0.706805 0.707284 0.00838972 0.0103445" mass="0.4143" diaginertia="0.000945777 0.000786419 0.000623874"/>
+          <joint name="Right_J1" pos="0 0 0" axis="0 -1 0" range="-3.1416 3.1416" actuatorfrcrange="-31 31" damping="0.6" frictionloss="0.1"/>
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J1"/>
+          <body name="Right_Link_J2" pos="0.001 -0.075 0">
+            <inertial pos="0.0038069 -3.3841e-08 -0.040778" quat="0.697993 0.113182 0.113209 0.697982" mass="0.51194" diaginertia="0.0012505 0.00107723 0.000958757"/>
+            <joint name="Right_J2" pos="0 0 0" axis="-1 0 0" range="-0.349 2.0944" actuatorfrcrange="-31 31" damping="0.6" frictionloss="0.1"/>
+            <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J2"/>
+            <body name="Right_Link_J3" pos="0 0 -0.093">
+              <inertial pos="0.0066911 -0.0019239 -0.13085" quat="0.704019 -0.0420963 -0.0233801 0.708547" mass="0.57095" diaginertia="0.00332533 0.00329003 0.000789789"/>
+              <joint name="Right_J3" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-10 10" damping="0.3" frictionloss="0.1"/>
+              <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J3"/>
+              <body name="Right_Link_J4" pos="0.013 0 -0.2065">
+                <inertial pos="-0.00025246 -0.0039161 -0.041415" quat="0.967336 0.253359 0.00785473 -0.00304025" mass="0.44416" diaginertia="0.000952201 0.00073989 0.000628199"/>
+                <joint name="Right_J4" pos="0 0 0" axis="0 -1 0" range="0 2.0944" actuatorfrcrange="-10 10" damping="0.3" frictionloss="0.1"/>
+                <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J4"/>
+                <body name="Right_Link_J5" pos="0 0 -0.0948">
+                  <inertial pos="3.7549e-06 -0.0015048 -0.11283" quat="0.999891 -0.0147562 -6.35803e-05 0.00107648" mass="0.4197" diaginertia="0.0021747 0.00216223 0.000401226"/>
+                  <joint name="Right_J5" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                  <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Right_Link_J5"/>
+                  <body name="Right_Link_J6" pos="0 0 -0.2049">
+                    <inertial pos="0.0010919 -0.0066883 -0.030929" quat="0.989093 0.139522 -0.0469063 -0.00537134" mass="0.16918" diaginertia="0.000177041 0.000157281 0.000146578"/>
+                    <joint name="Right_j6" pos="0 0 0" axis="0 1 0" range="-0.6982 0.6982" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                    <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Right_Link_J6"/>
+                    <body name="Right_Link_J7" pos="0 0 -0.064">
+                      <inertial pos="0.0023003 -4.8562e-06 -0.019732" quat="0.51153 0.488364 0.487046 0.512469" mass="0.16822" diaginertia="0.00019906 0.000198256 0.000110834"/>
+                      <joint name="Right_J7" pos="0 0 0" axis="1 0 0" range="-0.6982 1.309" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+                      <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="Right_Link_J7"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+        <body name="head_j1" pos="0 0 0.4078">
+          <inertial pos="8.957e-10 -0.0015181 0.06193" quat="0.861505 0.50775 0 0" mass="0.16247" diaginertia="0.00017836 0.000166307 0.000162483"/>
+          <joint name="head_j1" pos="0 0 0" axis="0 0 -1" range="-3.1416 3.1416" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+          <geom type="mesh" rgba="0.86667 0.9098 1 1" mesh="head_j1"/>
+          <body name="Head_Link_j2" pos="0 0 0.1">
+            <inertial pos="0.037458 0.012369 0.022008" quat="0.312832 0.312813 -0.634167 0.634127" mass="0.090281" diaginertia="4.57737e-05 4.29313e-05 1.8379e-05"/>
+            <joint name="Head_j2" pos="0 0 0" axis="0 1 0" range="-0.7854 0.7854" actuatorfrcrange="-5 5" damping="0.15" frictionloss="0.1"/>
+            <geom type="mesh" rgba="0.89412 0.89412 0.89412 1" mesh="Head_Link_j2"/>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>

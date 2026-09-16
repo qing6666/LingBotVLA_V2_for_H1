@@ -1,0 +1,64 @@
+# =====================================================================
+# SO101 双臂 robot config
+# ---------------------------------------------------------------------
+# 数据:dual_arm_dataset(LeRobot 格式, 12维 state/action, 3相机, fps30)
+# 12维编排:[左臂6(含左夹爪), 右臂6(含右夹爪)]
+#   左臂 [0:6):关节[0:5) + 左夹爪[5:6)
+#   右臂 [6:12):关节[6:11) + 右夹爪[11:12)
+# 相机:camera1=左腕D405, camera2=右腕D405, camera3=头部D435i(只用RGB)
+# =====================================================================
+
+states:
+  # 臂关节:左臂5关节 + 右臂5关节 = 10维
+  - observation.state.arm.position:
+      origin_keys:
+        - observation.state:       # 左臂关节 [0:5)
+            start: 0
+            end: 5
+        - observation.state:       # 右臂关节 [6:11)
+            start: 6
+            end: 11
+
+  # 夹爪:左夹爪 + 右夹爪 = 2维
+  - observation.state.effector.position:
+      origin_keys:
+        - observation.state:       # 左夹爪 [5:6)
+            start: 5
+            end: 6
+        - observation.state:       # 右夹爪 [11:12)
+            start: 11
+            end: 12
+
+actions:
+  # 臂关节动作:真机建议学相对动作(subtract_state: True)
+  - action.arm.position:
+      origin_keys:
+          - action:                # 左臂关节 [0:5)
+              start: 0
+              end: 5
+          - action:                # 右臂关节 [6:11)
+              start: 6
+              end: 11
+      subtract_state: True
+      relative_type: world      # ★ 关节用简单相减(action-=state);默认quaternion_local只给end.position会assert
+
+  # 夹爪动作:学绝对开合(subtract_state: False)
+  - action.effector.position:
+      origin_keys:
+          - action:                # 左夹爪 [5:6)
+              start: 5
+              end: 6
+          - action:                # 右夹爪 [11:12)
+              start: 11
+              end: 12
+      subtract_state: False
+
+images:
+  - observation.images.camera_top:           # 头部 D435i(第三视角)
+      origin_keys: observation.images.camera3
+  - observation.images.camera_wrist_left:    # 左腕 D405
+      origin_keys: observation.images.camera1
+  - observation.images.camera_wrist_right:   # 右腕 D405
+      origin_keys: observation.images.camera2
+
+norm_stats: assets/norm_stats/so101.json

@@ -1,0 +1,93 @@
+--- mjq_lingbotvla_v2/B_patch/muon.py.orig	2026-09-04 10:33:22.140908375 +0800
++++ lingbotvla/optim/muon.py	2026-09-04 11:05:20.361768531 +0800
+@@ -141,6 +141,25 @@
+     return ortho.to(original_dtype)
+ 
+ 
++@torch.no_grad()
++def _newton_schulz_maybe_gpu(
++    grad: Tensor,
++    ns_coefficients: Tuple[float, float, float],
++    ns_steps: int,
++    eps: float,
++) -> Tensor:
++    """★ B 方案补丁4(2026-09-04):offload 模式下优化器张量在 CPU,NS 是纯矩阵乘,
++    5.7B 参数在 24 核 CPU 上要 10-20 分钟/步(GPU 不到 2 秒)。这里把张量搬上
++    GPU 算完再搬回:同算法同精度(bf16 compute_dtype),仅浮点最低位舍入随
++    CPU/GPU 实现略有差异,对优化器语义无影响。张量本来就在 GPU(多卡/无
++    offload)时直通,行为不变。原件备份:mjq_lingbotvla_v2/B_patch/muon.py.orig
++    """
++    if grad.device.type == "cpu" and torch.cuda.is_available():
++        out = batched_newton_schulz(grad.cuda(), ns_coefficients, ns_steps, eps)
++        return out.cpu()
++    return batched_newton_schulz(grad, ns_coefficients, ns_steps, eps)
++
++
+ def _is_adamw_by_name(name: str, extra_patterns: Sequence[str]) -> bool:
+     lname = name.lower()
+     for pat in _DEFAULT_ADAMW_NAME_PATTERNS:
+@@ -243,6 +262,12 @@
+ def _full_grad(grad: Tensor) -> Tensor:
+     """Return a replicated tensor, all-gathering DTensor gradients if needed."""
+     if isinstance(grad, DTensor):
++        # ★ B 方案补丁3(2026-09-04):单卡 offload 下张量在 CPU,full_tensor()
++        #   内部走 all_gather(NCCL)→ "No backend type associated with device
++        #   type cpu"。mesh 总尺寸==1 时 local 即全量,恒等返回,零通信;
++        #   多卡(mesh>1)行为不变。原件备份:mjq_lingbotvla_v2/B_patch/muon.py.orig
++        if grad.device_mesh.size() == 1:
++            return grad.to_local()
+         return grad.full_tensor()
+     return grad
+ 
+@@ -410,14 +435,14 @@
+ 
+                 # Compute ortho on local tensors
+                 if kind == _KIND_LOCAL or kind == _KIND_MOE_LOCAL_3D:
+-                    ortho_local = batched_newton_schulz(update_local, ns_coefficients, ns_steps, eps)
++                    ortho_local = _newton_schulz_maybe_gpu(update_local, ns_coefficients, ns_steps, eps)
+                 elif kind == _KIND_MOE_GATHER_3D:
+                     assert isinstance(p, DTensor)
+                     # Need full tensor for NS — gather, compute, slice back
+                     full_update = _full_grad(
+                         DTensor.from_local(update_local, device_mesh=p.device_mesh, placements=p.placements, run_check=False)
+                     )
+-                    full_ortho = batched_newton_schulz(full_update, ns_coefficients, ns_steps, eps)
++                    full_ortho = _newton_schulz_maybe_gpu(full_update, ns_coefficients, ns_steps, eps)
+                     # Take this rank's local shard back
+                     pg, ws, rk, sdim = _get_dtensor_shard_info(p)
+                     global_size = p.shape[sdim]
+@@ -427,7 +452,7 @@
+                     local_size = update_local.shape[sdim]
+                     ortho_local = full_ortho.narrow(sdim, start, local_size).contiguous()
+                 else:
+-                    ortho_local = batched_newton_schulz(update_local, ns_coefficients, ns_steps, eps)
++                    ortho_local = _newton_schulz_maybe_gpu(update_local, ns_coefficients, ns_steps, eps)
+ 
+                 lr_shape = p.shape[-2:] if p.ndim >= 2 else p.shape
+                 adjusted_lr = _adjust_lr(lr, adjust_lr_fn, lr_shape)
+@@ -539,7 +564,13 @@
+             stacked_local = torch.nn.functional.pad(stacked_local, pad_spec)
+ 
+         gather_list = [torch.empty_like(stacked_local) for _ in range(world_size)]
+-        dist.all_gather(gather_list, stacked_local.contiguous(), group=pg)
++        if world_size == 1:
++            # ★ B 方案补丁3(2026-09-04):单卡 offload 下张量在 CPU,NCCL 不收;
++            #   1 卡 all_gather 恒等,直接拷贝,零通信。多卡(world_size>1)走原路不变。
++            #   原件备份:mjq_lingbotvla_v2/B_patch/muon.py.orig
++            gather_list[0].copy_(stacked_local.contiguous())
++        else:
++            dist.all_gather(gather_list, stacked_local.contiguous(), group=pg)
+         del stacked_local
+ 
+         # Reconstruct full global tensor, stripping per-rank padding if needed.
+@@ -554,8 +585,8 @@
+             stacked_full = torch.cat(real_chunks, dim=gather_dim)
+         del gather_list
+ 
+-        # Phase 3: Batched Newton-Schulz
+-        stacked_ortho = batched_newton_schulz(stacked_full, ns_coefficients, ns_steps, eps)
++        # Phase 3: Batched Newton-Schulz(★补丁4:借 GPU 算,CPU 上这步要十几分钟)
++        stacked_ortho = _newton_schulz_maybe_gpu(stacked_full, ns_coefficients, ns_steps, eps)
+         del stacked_full
+ 
+         # Phase 4: Local scatter + apply update

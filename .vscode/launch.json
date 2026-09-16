@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "训练 LingBot-VLA (H1)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/mjq_lingbotvla_v2/Lingbot_H1_Training.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

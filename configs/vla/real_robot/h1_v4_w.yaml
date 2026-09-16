@@ -1,0 +1,182 @@
+# =====================================================================
+# H1 v4_w(相位加权续训)配置 —— 基于 h1_v4.yaml 修改
+# ---------------------------------------------------------------------
+# 背景:v4 训完 40k 步闭环 0/10。三层根因中的 ③"发起段/终段没学会"
+# (40k 步×batch4=16 万样本 / 46 万帧 = 0.35 epoch,发起帧平均被采样
+#  0.35 次)走训练侧修复:发起/终段窗口在采样空间复制多份 + 续训。
+# 证据链与决策详见项目根《V4闭环失败诊断.md》。
+#
+# 与 h1_v4.yaml 的差异只有 6 处(其余逐字未动):
+#   ① data.phase_window_file → 新增(加权采样开关,不写=均匀采样)
+#   ② output_dir → output/h1_v4_w(绝不写进 h1_v4,保住已训成果)
+#   ③ load_checkpoint_path → h1_v4/global_step_40000(权重+优化器+步数续)
+#   ④ resume_dataloader_state → false(采样空间长度变了,不加载旧采样器
+#     状态;不加载新声明字段的话 train_lingbotvla.py:716 会 AttributeError
+#     → 被 except 吞掉 → 静默从头训练,已在 arguments.py 补声明)
+#   ⑤ max_steps 40000 → 88000(从 40000 续 48000 步,≈27h@2.0s/步)
+#   ⑥ save_steps 4000 → 8000(每档≈27.4G;6 档≈164G,当前余 350G)
+# norm 统计沿用 h1_v4.json(数据同一份,统计必须同一份)。
+#
+# ★ 中断后重启:直接再跑即可,什么都不用改(2026-08-29 已注释 ③,
+#   enable_resume 会扫 output/h1_v4_w/checkpoints 自动找最新档)。
+# =====================================================================
+
+# =====================================================================
+# 一、model 段 —— 用什么模型、怎么加载预训练权重(与 v4 完全一致)
+# =====================================================================
+model:
+  model_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/lingbot-vla-v2-6b
+  tokenizer_path: /home/mjq/robot_item/lingbot-vla-v2-main/models/Qwen3-VL-4B-Instruct
+  post_training: true
+  adanorm_time: true
+  config_key: LingbotVLAV2Config
+  moe_implementation: fused
+
+# =====================================================================
+# 二、数据段 —— 喂什么数据、怎么变成模型输入
+# =====================================================================
+data:
+  datasets_type: vla
+  data_name: h1
+  train_path: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v4_trimmed
+  robot_config_root: configs/robot_configs
+
+  # 55 维统一动作空间的槽位声明(与预训练权重绑定,不可改):
+  # 拼接顺序即本顺序 → 实际下标:[0:14]双臂(L 0-6, R 7-13) [14:28]末端(未映射)
+  #   [28:30]夹爪(L28, R29) [30:34]腰(未映射) [34:36]头 [36:39]底盘 [39:51]手
+  #   [51:55]尾部补零 —— action_loss_weights 按这套下标写
+  joints:
+    - arm.position: 14
+    - end.position: 14
+    - effector.position: 2
+    - waist.position: 4
+    - head.position: 2
+    - base.position: 3
+    - hand.position: 12
+
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+
+  prompt_type: global
+
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+    - waist.position: meanstd
+    - head.position: meanstd
+    - base.position: meanstd
+    - hand.position: meanstd
+
+  # ★ v4 专用统计:头部 std 已打 0.02 地板(fix_v4_head_std.py)。
+  #   绝不能沿用 h1_v3.json —— v3 头部在追踪(std 0.05/0.08),v4 恒定。
+  norm_stats_file: assets/norm_stats/h1_v4.json
+
+  # ★ v4_w 新增:相位加权采样(发起窗×8 / 抓取窗×4,索引展开式)。
+  #   文件由 mjq_lingbotvla_v2/make_phase_windows.py 生成(秒级,可重跑调权重);
+  #   加载端 lingbotvla/data/dataset.py:PhaseWeightedDataset。
+  #   不写此字段 = 均匀采样 = 与 v4 行为逐比特一致。
+  phase_window_file: /home/mjq/robot_item/lingbot-vla-v2-main/H1_simulation_model/H1_build/data/h1_build_pick_v4_trimmed.phase_windows.json
+
+  num_workers: 8
+  use_future_image: false
+
+# =====================================================================
+# 三、train 段 —— 怎么训
+# =====================================================================
+train:
+  output_dir: output/h1_v4_w
+  moe_monitor_interval: 1000
+
+  enable_gradient_checkpointing: true
+  precompute_grid_thw: true
+  vlm_causal: true
+  vlm_fsdp: true
+  attention_implementation: flex_cached
+
+  # ---------- MoE 动作专家结构(与预训练权重绑定,不可改!) ----------
+  use_moe: true
+  token_moe_layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]
+  token_num_experts: 32
+  token_top_k: 4
+  token_moe_intermediate_size: 512
+  token_shared_intermediate_size: 704
+  bias_update_speed: 0
+  sequence_wise_mode: "per_sequence"
+  sequence_wise_loss_coeff: 1e-3
+  router_z_loss_coeff: 1e-4
+  router_activation: "sigmoid"
+  routed_scaling_factor: 4.0
+  use_shared_expert_gate: false
+  use_moe_expert_lr: true
+
+  # ---------- 并行策略(单卡配置) ----------
+  data_parallel_mode: fsdp2
+  enable_full_shard: false
+  module_fsdp_enable: true
+  ulysses_parallel_size: 1
+
+  # ---------- 杂项开关 ----------
+  use_compile: false
+  use_wandb: false
+  rmpad: false
+  rmpad_with_pos_ids: false
+  freeze_vision_encoder: false
+
+  # ---------- 输入维度 ----------
+  tokenizer_max_length: 72
+  action_dim: 55
+  max_action_dim: 55
+  max_state_dim: 55
+
+  # ---------- 优化器(与 v4 一致,续训不变动量) ----------
+  optimizer: muon
+  train_expert_only: true
+  lr: 1.0e-4
+  lr_decay_style: constant
+  loss_type: L1_fm
+
+  # ---------- v4 的统一动作空间(55维)逐维损失权重(与 v4 完全一致) ----------
+  # 下标布局见 data.joints 注释:
+  #   右臂 7 维 [7:14] ×2.0、双夹爪 [28:30] ×2.0、头部 [34:36] ×0.0
+  action_loss_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        2.0, 2.0,
+                        1.0, 1.0, 1.0, 1.0,
+                        0.0, 0.0,
+                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                        1.0, 1.0, 1.0, 1.0]
+
+  # ---------- 批次与时长 ----------
+  chunk_size: 50
+  num_train_epochs: 30              # 上限保险;实际由 max_steps 驱动
+  micro_batch_size: 1
+  gradient_accumulation_steps: 4
+  global_batch_size: 4
+  max_steps: 88000                  # 从 40000 续 48000 步(≈27h)。
+                                    #   加权后发起帧期望访问 1.31 次(v4 基线 0.35)、
+                                    #   终段 0.65、中段 0.16(中段已学得好,让位)
+                                    #   期望值按 48k 步×batch4 算,改步数请同步重估
+
+  # ---------- ★ v4_w 续训:从 v4 终点档热启动(仅首次启动用) ----------
+  # 权重+优化器+global_step(40000) 全恢复;lr 恒定无状态问题。
+  # ★ 2026-08-29 已注释:48000 档落盘后改走 enable_resume(自动找
+  #   output/h1_v4_w/checkpoints 最新档)。若要重新从 v4 40k 起训(新目录),
+  #   取消注释并清空 output/h1_v4_w。
+  # load_checkpoint_path: /home/mjq/robot_item/lingbot-vla-v2-main/output/h1_v4/checkpoints/global_step_40000
+  resume_dataloader_state: false    # 采样空间 46万→117万行,v4 的旧采样器状态不可用;
+                                    #   本目录档的状态虽兼容,但重洗牌统计等价且是已验证路径,保持 false
+  enable_resume: true
+
+  # ---------- 存档 ----------
+  ckpt_manager: dcp
+  save_steps: 8000                  # 磁盘约束:每档≈27.4G,48000 步→6 档≈164G
+                                    #   (当前余 350G;v4 的 266G 不动)
+  save_epochs: 29000
+
+  # ---------- 精度(32GB 单卡,与 v4 一致) ----------
+  enable_mixed_precision: false
+  enable_fp32: false

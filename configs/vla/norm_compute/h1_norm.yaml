@@ -1,0 +1,31 @@
+# H1 norm 计算专用配置(compute_norm_stats 用)
+# ★ 关键:无 model 段(compute_norm_stats 的 Arguments 只有 data+train,不认 model)
+# data_name / train_path / norm_path 由命令行(--data.xxx)传入
+data:
+  datasets_type: vla
+  robot_config_root: configs/robot_configs
+  joints:
+    - arm.position: 14        # H1: 左臂7+右臂7 = 14,正好占满
+    - end.position: 14        # 保留:对齐预训练模型头维度(robot config 未映射,不生效)
+    - effector.position: 2    # H1: 左右夹爪 2 维
+    - head.position: 2        # H1: 头部 2 维(数据确认在动,std 0.07/0.16)
+    - waist.position: 4       # 声明保留(对齐头维度);robot config 不映射 —— 数据里腰部全程静止
+  cameras:
+    - camera_top
+    - camera_wrist_left
+    - camera_wrist_right
+  prompt_type: global
+  norm_type:
+    - arm.position: meanstd
+    - end.position: meanstd
+    - effector.position: meanstd
+    - head.position: meanstd
+    - waist.position: meanstd
+  num_workers: 4
+  use_future_image: false
+
+train:
+  chunk_size: 50
+  micro_batch_size: 1
+  output_dir: tmp_norm   # compute_norm_stats 要求(required);算 norm 不存模型,给临时目录即可
+  max_steps: 1           # TrainingArguments 要求;算 norm 不真训练

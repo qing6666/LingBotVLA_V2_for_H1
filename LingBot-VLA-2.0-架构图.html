@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LingBot-VLA 2.0 架构图</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", sans-serif; background: #f0f2f5; padding: 30px; color: #333; }
+h1 { text-align: center; font-size: 28px; margin-bottom: 30px; color: #1a237e; }
+.layer { max-width: 1000px; margin: 0 auto 20px; padding: 18px; border-radius: 12px; border: 2px solid; }
+.layer h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.layer h2 .num { background: #333; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.box { background: #fff; border-radius: 8px; padding: 12px 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.6; min-width: 130px; }
+.box strong { display: block; font-size: 15px; margin-bottom: 4px; }
+.box small { color: #666; font-size: 12px; }
+
+/* 颜色主题 */
+.input { background: #e3f2fd; border-color: #1976d2; }
+.input .num { background: #1976d2; }
+.input .box { border-top: 3px solid #1976d2; }
+
+.vlm { background: #f3e5f5; border-color: #7b1fa2; }
+.vlm .num { background: #7b1fa2; }
+.vlm .box { border-top: 3px solid #7b1fa2; }
+
+.expert { background: #e8f5e9; border-color: #388e3c; }
+.expert .num { background: #388e3c; }
+.expert .box { border-top: 3px solid #388e3c; }
+
+.flow { background: #fff3e0; border-color: #f57c00; }
+.flow .num { background: #f57c00; }
+.flow .box { border-top: 3px solid #f57c00; }
+
+.distill { background: #fce4ec; border-color: #c62828; }
+.distill .num { background: #c62828; }
+.distill .box { border-top: 3px solid #c62828; }
+
+.output { background: #e0f7fa; border-color: #00838f; }
+.output .num { background: #00838f; }
+.output .box { border-top: 3px solid #00838f; }
+
+.config { background: #f5f5f5; border-color: #616161; }
+.config .num { background: #616161; }
+.config .box { border-top: 3px solid #616161; }
+
+/* 箭头 */
+.arrow { text-align: center; font-size: 24px; color: #999; margin: 6px 0; }
+.arrow-side { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 6px 0; color: #666; font-size: 13px; }
+
+/* 三支线 */
+.branches { display: flex; gap: 14px; justify-content: center; margin-top: 10px; }
+.branch { flex: 1; max-width: 280px; background: #fff; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.branch.main { border-top: 4px solid #c62828; }
+.branch.depth { border-top: 4px solid #1565c0; }
+.branch.video { border-top: 4px solid #6a1b9a; }
+.branch strong { display: block; margin-bottom: 6px; }
+.loss { display: inline-block; background: #ffebee; color: #c62828; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-top: 6px; font-weight: bold; }
+.loss.d { background: #e3f2fd; color: #1565c0; }
+.loss.v { background: #f3e5f5; color: #6a1b9a; }
+
+.total { text-align: center; margin-top: 12px; font-size: 14px; padding: 8px; background: #fff3e0; border-radius: 8px; border: 1px dashed #f57c00; }
+.formula { font-family: monospace; font-size: 13px; }
+
+.note { max-width: 1000px; margin: 0 auto; padding: 12px 18px; background: #fffde7; border-left: 4px solid #fbc02d; border-radius: 4px; font-size: 13px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<h1>LingBot-VLA 2.0 完整模型架构</h1>
+
+<!-- 输入层 -->
+<div class="layer input">
+  <h2><span class="num">1</span> 输入层</h2>
+  <div class="row">
+    <div class="box"><strong>📷 顶部 RGB</strong><small>camera_top<br>(D435i)</small></div>
+    <div class="box"><strong>📷 左腕 RGB</strong><small>camera_wrist_left<br>(D405)</small></div>
+    <div class="box"><strong>📷 右腕 RGB</strong><small>camera_wrist_right<br>(D405)</small></div>
+    <div class="box"><strong>🗣️ 任务指令</strong><small>lang_tokens<br>"抓起工件..."</small></div>
+    <div class="box"><strong>🦾 关节状态</strong><small>state (12维)<br>[左臂6 + 右臂6]</small></div>
+  </div>
+</div>
+
+<div class="arrow">↓ &nbsp; robot_config 映射 + norm_stats 归一化 → padding 到 55 维统一空间</div>
+
+<!-- VLM 骨干 -->
+<div class="layer vlm">
+  <h2><span class="num">2</span> VLM 骨干 — QwenvlWithExpertV2Model <small style="font-weight:normal;color:#666">(qwen3vl_in_vla.py — Qwen3-VL 改装版)</small></h2>
+  <div class="row">
+    <div class="box"><strong>视觉编码器</strong><small>3×RGB → patch_embed<br>→ 多层 VisionBlock<br>(cu_seqlens 分段注意力)<br>→ merger → visual tokens</small></div>
+    <div class="box" style="border: 2px dashed #7b1fa2;"><strong>★ 双查询插入</strong><small>depth query (深度提问位)<br>video query (未来提问位)<br>← Dual-Query 核心创新</small></div>
+    <div class="box"><strong>语言模型</strong><small>Qwen3-VL Text Decoder<br>prefix + suffix 联合注意力<br>→ outputs_embeds<br>→ suffix_out (动作区)</small></div>
+  </div>
+</div>
+
+<div class="arrow">↓ &nbsp; suffix_out → action expert &nbsp;|&nbsp; outputs_embeds → 蒸馏支线</div>
+
+<!-- MoE Expert -->
+<div class="layer expert">
+  <h2><span class="num">3</span> MoE 动作专家 <small style="font-weight:normal;color:#666">(qwen2_action_expert.py)</small></h2>
+  <div class="row">
+    <div class="box"><strong>路由器 gate</strong><small>Linear(D→32)<br>fp32 打分<br>sigmoid/softmax<br>+ loss-free bias 均衡</small></div>
+    <div class="box"><strong>top_k = 4</strong><small>32 专家选 4<br>稀疏激活<br>取权重 + 归一化</small></div>
+    <div class="box"><strong>32 路由专家</strong><small>Qwen2FusedExperts<br>3D 权重 + fused_moe<br>高效批量计算</small></div>
+    <div class="box"><strong>共享专家</strong><small>shared expert<br>所有 token 都过<br>提取通用知识</small></div>
+  </div>
+  <div class="arrow-side">→ 路由输出 + 共享输出 → action_out_proj → <strong>v_t (预测速度)</strong> &nbsp; | &nbsp; router_logits → MoE 均衡 loss</div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- Flow Matching -->
+<div class="layer flow">
+  <h2><span class="num">4</span> Flow Matching 动作生成 <small style="font-weight:normal;color:#666">(modeling_lingbot_vla_v2.py + flow_match.py)</small></h2>
+  <div class="row">
+    <div class="box" style="max-width:420px;text-align:left;">
+      <strong>🟢 训练 forward</strong><small>
+        noise ~ N(0,I), &nbsp; time ~ U(0,1)<br>
+        x_t = t·noise + (1-t)·action &nbsp;(动作掺噪声)<br>
+        u_t = noise - action &nbsp;(目标速度)<br>
+        VLM+Expert 前向 → action_out_proj → v_t<br>
+        <b>vla_loss = MSE(u_t, v_t)</b>
+      </small>
+    </div>
+    <div class="box" style="max-width:420px;text-align:left;">
+      <strong>🟧 推理 sample_actions</strong><small>
+        1. prefix 前向 → 缓存 KV cache (只算1次)<br>
+        2. x_t = 纯噪声, &nbsp; time = 1.0<br>
+        3. 循环 10 步去噪:<br>
+        &nbsp;&nbsp;&nbsp;v_t = predict_velocity (复用 KV)<br>
+        &nbsp;&nbsp;&nbsp;x_t += dt · v_t &nbsp;(欧拉积分)<br>
+        4. x_t → 动作 chunk (50步,归一化)
+      </small>
+    </div>
+  </div>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- 蒸馏 3 支线 -->
+<div class="layer distill">
+  <h2><span class="num">5</span> 双查询蒸馏 — 训练时 3 条支线并行 ★</h2>
+  <div class="branches">
+    <div class="branch main">
+      <strong>① 动作支线(主线)</strong>
+      <small>v_t (预测速度)<br>vs u_t (目标速度)</small>
+      <div class="loss">vla_loss × 1.0</div>
+    </div>
+    <div class="branch depth">
+      <strong>② 深度蒸馏</strong>
+      <small>depth query → 预测深度<br>vs MoGe+MoRGBD 教师目标<br><em>(教师从 RGB 估深度)</em></small>
+      <div class="loss d">depth_loss × 0.004</div>
+    </div>
+    <div class="branch video">
+      <strong>③ 视频蒸馏</strong>
+      <small>video query → 预测未来帧<br>vs video-DINO 教师目标<br><em>(教师从时序推未来)</em></small>
+      <div class="loss v">video_loss × 0.004</div>
+    </div>
+  </div>
+  <div class="total formula">
+    total_loss = vla_loss + 0.004·depth_loss + 0.004·video_loss + seq_wise_loss + router_z_loss
+  </div>
+  <p style="text-align:center;margin-top:8px;font-size:13px;color:#c62828;">
+    ★ 训练 3 路监督 → 推理只用动作(但 VLM 表征已被蒸馏强化)
+  </p>
+</div>
+
+<div class="arrow">↓</div>
+
+<!-- 输出 -->
+<div class="layer output">
+  <h2><span class="num">6</span> 输出</h2>
+  <div class="row">
+    <div class="box"><strong>训练</strong><small>total_loss → backward<br>→ 更新权重</small></div>
+    <div class="box"><strong>推理</strong><small>动作 chunk (50步)<br>→ unapply 反归一化<br>→ 真实关节弧度<br>→ 机器人执行</small></div>
+  </div>
+</div>
+
+<br>
+
+<!-- 配置支撑 -->
+<div class="layer config">
+  <h2><span class="num">⚙</span> 支撑层：配置 + 数据管线</h2>
+  <div class="row">
+    <div class="box"><strong>LingbotVLAV2Config</strong><small>模型设计图纸<br>32专家 / top_k=4<br>10步去噪 / align_params</small></div>
+    <div class="box"><strong>robot_config.yaml</strong><small>字段翻译规则<br>12维→arm(10)+effector(2)<br>相机重命名 / subtract_state</small></div>
+    <div class="box"><strong>norm_stats.json</strong><small>归一化统计量<br>mean/std/q01/q99<br>训练+推理共用同一份</small></div>
+  </div>
+  <div class="arrow-side" style="margin-top:10px;">
+    LeRobot 数据 → robot_config 映射 → norm_stats 归一化 → padding(55维) → 模型
+  </div>
+</div>
+
+<br>
+
+<div class="note">
+  <strong>📌 架构要点：</strong><br>
+  ① <b>VLM 骨干</b>(Qwen3-VL 改装):看图听话,插入 depth/video 双查询<br>
+  ② <b>MoE 专家</b>(32选4 + 共享):稀疏推理,参数容量大但算得少<br>
+  ③ <b>Flow Matching</b>:训练学速度场,推理从噪声积分到动作(10步去噪)<br>
+  ④ <b>双查询蒸馏</b>:训练时深度+视频教师监督(几何+时序理解),推理只用动作但受益于好表征<br>
+  ⑤ <b>统一 55 维空间</b>:不同机器人映射到同一空间的不同子集,共用一个模型<br><br>
+  <strong>一句话</strong>:RGB 图像+语言+状态 → VLM 看懂(含双查询)→ MoE 推理 → Flow Matching 走出动作 → unapply 还原 → 机器人执行
+</div>
+
+</body>
+</html>

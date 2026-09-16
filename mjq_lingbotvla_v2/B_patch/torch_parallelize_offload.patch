@@ -1,0 +1,51 @@
+--- mjq_lingbotvla_v2/B_patch/torch_parallelize.py.orig	2026-09-04 10:09:33.894957010 +0800
++++ lingbotvla/distributed/torch_parallelize.py	2026-09-04 10:14:13.274174691 +0800
+@@ -43,6 +43,7 @@
+ 
+ if is_torch_version_greater_than("2.4"):
+     from torch.distributed._composable.fsdp import MixedPrecisionPolicy, fully_shard
++    from torch.distributed.fsdp import CPUOffloadPolicy
+     from torch.distributed.tensor.parallel import parallelize_module
+ 
+ 
+@@ -98,11 +99,14 @@
+     """
+     parallel_state = get_parallel_state()
+     fsdp_no_shard_states = None
++    # ★ B 方案补丁(2026-09-04):单卡 offload 模式预读标志(不 pop,fsdp1 分支仍自行 pop,行为不变)。
++    #   原件备份/复原:mjq_lingbotvla_v2/B_patch/torch_parallelize.py.orig
++    enable_fsdp_offload = kwargs.get("enable_fsdp_offload", False)
+ 
+     if not parallel_state.fsdp_enabled:
+         if kwargs.get("init_device") != "cuda":
+             raise ValueError("Only FSDP training supports `init_device=cpu` or `init_device=meta`.")
+-        if kwargs.pop("enable_fsdp_offload", False):
++        if kwargs.pop("enable_fsdp_offload", False) and parallel_state.world_size > 1:
+             raise ValueError("Only FSDP training supports `enable_fsdp_offload`.")
+ 
+     if enable_mixed_precision:  # upcast to float32 before feed it to optimizer
+@@ -146,8 +150,10 @@
+         fsdp_no_shard_states = None
+         fsdp_no_shard_states_fqn = None
+ 
+-    if parallel_state.fsdp_enabled:
++    if parallel_state.fsdp_enabled or enable_fsdp_offload:
+         logger.info_rank0(f"Apply data parallel to the model: {parallel_state.dp_mode}.")
++        if enable_fsdp_offload and not parallel_state.fsdp_enabled:
++            logger.info_rank0("Single-GPU FSDP2 CPU-offload mode: reuse dp_shard mesh (size 1).")
+         if parallel_state.dp_mode == "fsdp2":
+             def merge_ignored_params(fsdp_options: Dict[str, Any], params: set) -> None:
+                 if not params:
+@@ -244,6 +250,12 @@
+                     reduce_dtype=torch.float32,
+                     output_dtype=torch.bfloat16,
+                 )
++
++            if enable_fsdp_offload:
++                cpu_offload_policy = CPUOffloadPolicy(pin_memory=True)
++                fsdp_kwargs["offload_policy"] = cpu_offload_policy     # 专家/解码块
++                mp_fsdp_kwargs["offload_policy"] = cpu_offload_policy  # VLM 层 + 根模块
++                logger.info_rank0("Enable CPU offloading for params & optimizer states (FSDP2).")
+             ignore_modules_in_mixed_precision = tuple()
+             if hasattr(model, "get_ignore_modules_in_mixed_precision"):
+                 ignore_modules_in_mixed_precision = model.get_ignore_modules_in_mixed_precision()

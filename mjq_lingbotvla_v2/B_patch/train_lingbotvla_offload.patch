@@ -1,0 +1,18 @@
+--- mjq_lingbotvla_v2/B_patch/train_lingbotvla.py.orig	2026-09-04 10:25:51.553310449 +0800
++++ tasks/vla/train_lingbotvla.py	2026-09-04 10:26:14.631011736 +0800
+@@ -964,6 +964,15 @@
+             elif hasattr(model, '_ep_param_set'):
+                 from lingbotvla.distributed.fsdp2.clip_grad_norm import ep_fsdp2_clip_grad_norm
+                 grad_norm = ep_fsdp2_clip_grad_norm(model, max_grad_norm)
++            elif get_parallel_state().world_size == 1:
++                # ★ B 补丁2(2026-09-04):单卡 offload 下梯度是 CPU 上的 DTensor,
++                #   torch 的 clip_grad_norm_ 会经 mesh 发集合通信,NCCL 不支持 CPU → 崩。
++                #   单卡无通信需求:直接裁剪 local 张量(1 卡 mesh 的 local=全量,in-place
++                #   缩放作用于 DTensor 底层存储)。普通张量无 to_local,原样通过,行为不变。
++                #   原件备份:mjq_lingbotvla_v2/B_patch/train_lingbotvla.py.orig
++                _grads = [p.grad.to_local() if hasattr(p.grad, "to_local") else p.grad
++                          for p in model.parameters() if p.grad is not None]
++                grad_norm = torch.nn.utils.clip_grad_norm_(_grads, max_grad_norm, foreach=True)
+             else:
+                 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm, foreach=True)
+ 
